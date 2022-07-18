@@ -83,7 +83,7 @@ const login = async (req, res) => {
 };
 
 const renewToken = async (req, res) => {
-	const { usernameOrEmail, section, guardId, superior, userId } = req.datosuser;
+	const { usernameOrEmail, section, guardId, superior, userId } = req.userData;
 
 	let newToken;
 	try {

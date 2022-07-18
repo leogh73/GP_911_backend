@@ -3,15 +3,12 @@ import { consultSpreadsheet } from '../database/googleSheets.js';
 
 const day = async (req, res) => {
 	const { date } = req.body;
-
+	console.log(date);
 	try {
-		const read = await consultSpreadsheet(
-			false,
-			'Buscador!B3',
-			date,
-			'Buscador!C2:F11',
-			'COLUMNS',
-		);
+		const { values } = (
+			await consultSpreadsheet(false, 'Buscador!B3', date, 'Buscador!C2:F11', 'COLUMNS')
+		).data;
+		console.log(values);
 		const { changesCover, changesReturn } = await changesControllers.search(
 			req.userData.section,
 			'coverResult.date',
@@ -20,9 +17,9 @@ const day = async (req, res) => {
 			date,
 		);
 
-		let dayGuard = loadDayGuards(changesCover, changesReturn, read);
+		let dayGuard = loadDayGuards(changesCover, changesReturn, values);
 
-		console.log(dayGuard);
+		// console.log(dayGuard);
 
 		res.send(dayGuard);
 	} catch (error) {
@@ -138,22 +135,22 @@ const loadStaff = (changesCover, changesReturn, data) => {
 
 const loadDayGuards = (changesCover, changesReturn, read) => {
 	return [
-		[{ day: read.data.values[3][1] }],
+		[{ day: read[3][1] }],
 		[
 			{
 				shift: '6 a 14 hs.',
-				guardId: read.data.values[0][1],
-				staff: loadStaff(changesCover, changesReturn, read.data.values[0]),
+				guardId: read[0][1],
+				staff: loadStaff(changesCover, changesReturn, read[0]),
 			},
 			{
 				shift: '14 a 22 hs.',
-				guardId: read.data.values[1][1],
-				staff: loadStaff(changesCover, changesReturn, read.data.values[1]),
+				guardId: read[1][1],
+				staff: loadStaff(changesCover, changesReturn, read[1]),
 			},
 			{
 				shift: '22 a 6 hs.',
-				guardId: read.data.values[2][1],
-				staff: loadStaff(changesCover, changesReturn, read.data.values[2]),
+				guardId: read[2][1],
+				staff: loadStaff(changesCover, changesReturn, read[2]),
 			},
 		],
 	];

@@ -32,5 +32,6 @@ export const consultSpreadsheet = async (
 		range: readRange,
 		majorDimension: readType,
 	});
+	console.log(readData);
 	return readData;
 };
