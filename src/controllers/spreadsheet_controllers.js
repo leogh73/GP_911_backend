@@ -1,26 +1,20 @@
 import changesControllers from './changes_controllers.js';
-import { consultSpreadsheet } from '../database/googleSheets.js';
+import { consultSpreadsheet } from '../modules/googleSheets.js';
 
-const day = async (req, res) => {
+const guardDay = async (req, res) => {
 	const { date } = req.body;
-	console.log(date);
 	try {
 		const { values } = (
 			await consultSpreadsheet(false, 'Buscador!B3', date, 'Buscador!C2:F11', 'COLUMNS')
 		).data;
-		console.log(values);
-		const { changesCover, changesReturn } = await changesControllers.search(
-			req.userData.section,
-			'coverResult.date',
-			date,
-			'returnResult.date',
-			date,
-		);
-
-		let dayGuard = loadDayGuards(changesCover, changesReturn, values);
-
-		// console.log(dayGuard);
-
+		// const { changesCover, changesReturn } = await changesControllers.search(
+		// 	req.userData.section,
+		// 	'coverData.date',
+		// 	date,
+		// 	'returnData.date',
+		// 	date,
+		// );
+		let dayGuard = loadDayGuards(values);
 		res.send(dayGuard);
 	} catch (error) {
 		console.log(error);
@@ -28,7 +22,7 @@ const day = async (req, res) => {
 	}
 };
 
-const today = async (req, res) => {
+const guardToday = async (req, res) => {
 	try {
 		const read = await consultSpreadsheet(true, null, null, 'Hoy!C2:F11', 'COLUMNS');
 		const date = new Date(Date.now()).toLocaleString('es-AR').split(' ')[0];
@@ -49,7 +43,7 @@ const today = async (req, res) => {
 	}
 };
 
-const monthOwn = async (section, guardId, fullName) => {
+const guardMonthOwn = async (section, guardId, fullName) => {
 	// const { changesCover, changesReturn } = await searchChanges(
 	// 	section,
 	// 	'coverName',
@@ -98,7 +92,7 @@ const monthOwn = async (section, guardId, fullName) => {
 	}
 };
 
-const monthTotal = async (req, res) => {
+const guardMonthTotal = async (req, res) => {
 	const { date } = req.body;
 
 	try {
@@ -117,7 +111,6 @@ const monthTotal = async (req, res) => {
 };
 
 const loadStaff = (changesCover, changesReturn, data) => {
-	console.log(data);
 	let guardStaff = [];
 	for (let i = 3; i < data.length; i++) {
 		let name = data[i];
@@ -133,27 +126,32 @@ const loadStaff = (changesCover, changesReturn, data) => {
 	return guardStaff;
 };
 
-const loadDayGuards = (changesCover, changesReturn, read) => {
+const loadDayGuards = (read) => {
 	return [
-		[{ day: read[3][1] }],
-		[
-			{
-				shift: '6 a 14 hs.',
-				guardId: read[0][1],
-				staff: loadStaff(changesCover, changesReturn, read[0]),
-			},
-			{
-				shift: '14 a 22 hs.',
-				guardId: read[1][1],
-				staff: loadStaff(changesCover, changesReturn, read[1]),
-			},
-			{
-				shift: '22 a 6 hs.',
-				guardId: read[2][1],
-				staff: loadStaff(changesCover, changesReturn, read[2]),
-			},
-		],
+		{
+			shift: '6 a 14 hs.',
+			guardId: read[0][1],
+		},
+		{
+			shift: '14 a 22 hs.',
+			guardId: read[1][1],
+		},
+		{
+			shift: '22 a 6 hs.',
+			guardId: read[2][1],
+		},
 	];
 };
 
-export default { day, today, monthOwn, monthTotal };
+const allUsers = async (req, res) => {
+	try {
+		const consult = await consultSpreadsheet(true, null, null, 'Personal!A2:F7', 'COLUMNS');
+		const userList = consult.data.values.flat().sort();
+		res.send(userList);
+	} catch (error) {
+		console.log(error);
+		res.send({ mensaje: 'No se pudo realizar la consulta.' });
+	}
+};
+
+export default { guardDay, guardToday, guardMonthOwn, guardMonthTotal, allUsers };

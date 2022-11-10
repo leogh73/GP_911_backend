@@ -14,6 +14,7 @@ export const verifyAuthorization = (req, res, next) => {
 		};
 		next();
 	} catch (error) {
-		return res.send({ error: 'Error' });
+		console.log(error);
+		return res.send({ error: 'Not authorized' });
 	}
 };

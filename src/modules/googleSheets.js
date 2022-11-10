@@ -1,6 +1,6 @@
 import { google } from 'googleapis';
 const auth = new google.auth.GoogleAuth({
-	keyFile: './src/database/serviceAccount.json',
+	credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT),
 	scopes: 'https://www.googleapis.com/auth/spreadsheets',
 });
 const authClientObject = await auth.getClient();
@@ -24,7 +24,7 @@ export const consultSpreadsheet = async (
 				values: [[writeValue]],
 			},
 		});
-		await new Promise((resolve) => setTimeout(resolve, 1000));
+		await new Promise((resolve) => setTimeout(resolve, 500));
 	}
 	const readData = googleSheets.spreadsheets.values.get({
 		spreadsheetId,
@@ -32,6 +32,5 @@ export const consultSpreadsheet = async (
 		range: readRange,
 		majorDimension: readType,
 	});
-	console.log(readData);
 	return readData;
 };

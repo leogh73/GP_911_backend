@@ -1,58 +1,62 @@
-import changesModels from '../models/change.js';
-
-const selectModel = (section) => {
-	let consultChanges;
-	if (section == 'Monitoreo') consultChanges = changesModels.Monitoring;
-	if (section == 'Teléfono') consultChanges = changesModels.Phone;
-	return consultChanges;
-};
+import luxon from '../modules/luxon.js';
+import db from '../modules/mongodb.js';
 
 const all = async (req, res) => {
-	let consultChanges = selectModel(req.userData.section);
-
 	const filterChanges = (totalChanges) => {
-		let upcomingChanges = [];
 		let date = new Date(Date.now());
 		let dateToday = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-		totalChanges.forEach((ch) => {
-			let datePartC = ch.coverResult.date.split('/');
-			let datePartD = ch.returnResult.date.split('/');
+		let upcomingChanges = totalChanges.filter((ch) => {
+			let datePartC = ch.coverData.date.split('/');
+			let datePartD = ch.returnData.date.split('/');
 			let dateCover = new Date(datePartC[2], datePartC[1] - 1, datePartC[0]);
 			let dateReturn = new Date(datePartD[2], datePartD[1] - 1, datePartD[0]);
-			if (dateReturn >= dateToday && dateCover >= dateToday) {
-				upcomingChanges.push(ch);
-			}
+			if (dateReturn >= dateToday && dateCover >= dateToday) return ch;
 		});
 		return upcomingChanges;
 	};
 
+	const closestDate = (ch) => {
+		let coverParts = ch.toObject().coverData.date.split('/');
+		let returnParts = ch.toObject().returnData.date.split('/');
+		let dateCover = new Date(coverParts[2], coverParts[1] - 1, coverParts[0]);
+		let dateReturn = new Date(returnParts[2], returnParts[1] - 1, returnParts[0]);
+		return dateCover.getTime() > dateReturn.getTime() ? dateReturn : dateCover;
+	};
+
+	const sortChanges = (changesList) => {
+		let sortedList = changesList.sort((ch1, ch2) => closestDate(ch1) - closestDate(ch2));
+		let i = 0;
+		let finalList = sortedList.map((item) => {
+			let newItem = item.toObject();
+			newItem.priorityId = (i += 1).toString().padStart(3, '0');
+			return newItem;
+		});
+		return finalList;
+	};
+
 	try {
-		const totalChanges = await consultChanges.find({});
+		const totalChanges = await db.Change.find({ section: req.userData.section });
 		const filteredChanges = filterChanges(totalChanges);
-		res.send(filteredChanges);
+		const sortedChanges = sortChanges(filteredChanges);
+		res.send(sortedChanges);
 	} catch (error) {
 		res.send({ mensaje: error });
 	}
 };
 
 const newOne = async (req, res) => {
-	const { startDate, startDay, returnName, coverName, returnResult, coverResult } = req.body;
+	const { coverData, returnData } = req.body;
 
-	let ChangeModel = selectModel(req.userData.section);
-
-	const newChange = new ChangeModel({
-		startDate,
-		startDay,
-		returnName,
-		coverName,
-		returnResult,
-		coverResult,
+	const newChange = new db.Change({
+		history: [luxon.timeStamp(`Cambio creado por ${coverData.name}`)],
+		coverData,
+		returnData,
+		section: req.userData.section,
 		status: 'Solicitado',
 	});
 
 	try {
 		let result = await newChange.save();
-		console.log(result);
 		res.send(result);
 	} catch (error) {
 		res.send({ error: error });
@@ -64,10 +68,8 @@ const cancel = async (req, res) => {
 
 	if (req.userData.superior) return res.send({ error: 'Error' });
 
-	let ChangeModel = selectModel(req.userData.section);
-
 	try {
-		let result = await ChangeModel.findOneAndUpdate(
+		let result = await db.Change.findOneAndUpdate(
 			{ _id: changeId },
 			{ $set: { status: 'Cancelado' } },
 		);
@@ -83,16 +85,14 @@ const modify = async (req, res) => {
 	if (!req.userData.superior) return res.send({ error: 'Error' });
 
 	let actionDB;
-	if (action === 'aprobar') actionDB = 'Aprobado';
-	if (action === 'noaprobar') actionDB = 'No aprobado';
-	if (action === 'anular') actionDB = 'Anulado';
-
-	let ChangeModel = selectModel(req.userData.section);
+	if (action === 'approve') actionDB = 'Aprobado';
+	if (action === 'notapprove') actionDB = 'No aprobado';
+	if (action === 'void') actionDB = 'Anulado';
 
 	try {
-		let result = await ChangeModel.findOneAndUpdate(
+		let result = await db.Change.findOneAndUpdate(
 			{ _id: changeId },
-			{ $set: { status: `${actionDB} por ${fullName}` } },
+			{ $set: { status: actionDB } },
 		);
 		res.send(result);
 	} catch (error) {
@@ -101,8 +101,6 @@ const modify = async (req, res) => {
 };
 
 const search = async (section, coverFilter, coverData, returnFilter, returnData) => {
-	let changeModel = selectModel(section);
-
 	const changesCover = await changeModel.find({
 		[coverFilter]: coverData,
 		status: /^Aprobado/,
