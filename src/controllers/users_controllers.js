@@ -14,7 +14,7 @@ const register = async (req, res) => {
 	}
 
 	let userSection;
-	if (section === 'Teléfono') userSection = 'Phone';
+	if (section === 'Teléfonía') userSection = 'Phoning';
 	if (section === 'Monitoreo') userSection = 'Monitoring';
 
 	const newUser = new db.User({
