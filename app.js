@@ -11,8 +11,6 @@ import userRoutes from './src/routes/users_routes.js';
 import spreadsheetRoutes from './src/routes/spreadsheet_routes.js';
 import changesRoutes from './src/routes/changes_routes.js';
 
-import decryptedData from './src/modules/crypto-js.js';
-
 app.use('/api/user', userRoutes);
 app.use('/api/spreadsheet', spreadsheetRoutes);
 app.use('/api/changes', changesRoutes);
