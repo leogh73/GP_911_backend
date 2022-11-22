@@ -49,11 +49,7 @@ const login = async (req, res, next) => {
 
 	const { userId, firstName, lastName, section, guardId, superior } = storedData.toObject();
 
-	req.body.userId = userId;
-	req.body.fullName = `${lastName} ${firstName}`;
-	req.body.section = section;
-	req.body.guardId = guardId;
-	req.body.superior = superior;
+	req.body.userData = { userId, firstName, lastName, section, guardId, superior };
 
 	next();
 };
