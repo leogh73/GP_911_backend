@@ -42,17 +42,16 @@ const register = async (req, res) => {
 };
 
 const login = async (req, res) => {
-	const { usernameOrEmail, userId, firstName, lastName, section, guardId, superior } =
-		req.body.userData;
+	const { userId, firstName, lastName, section, guardId, superior } = req.body.userData;
 
 	let token;
 	try {
 		token = jwt.sign(
 			{
-				usernameOrEmail,
+				userId,
+				fullName: `${lastName} ${firstName}`,
 				section,
 				guardId,
-				userId,
 				superior,
 			},
 			'codigo_ultrasecreto_no_compartir',

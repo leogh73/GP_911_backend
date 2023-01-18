@@ -22,8 +22,8 @@ const errorMessage = () => {
 	};
 };
 
-const timeStamp = (message) => {
-	return { date: getDate(), time: getTime(), message };
+const changelog = (details, user) => {
+	return { date: getDate(), time: getTime(), details, user };
 };
 
-export default { getDate, getTime, timeStamp, errorMessage };
+export default { getDate, getTime, changelog, errorMessage };

@@ -13,40 +13,79 @@ mongoose
 	.then(() => console.log('Connected to MongoDB...'))
 	.catch((error) => console.error('Could not connect to MongoDB', error));
 
+const stringType = { type: String, required: true };
+
 const user = new Schema({
-	username: { type: String, required: true },
-	lastName: { type: String, required: true },
-	firstName: { type: String, required: true },
+	username: stringType,
+	lastName: stringType,
+	firstName: stringType,
 	ni: { type: Number, required: true },
-	section: { type: String, required: true },
-	guardId: { type: String, required: true },
-	email: { type: String, required: true },
-	password: { type: String, required: true },
+	section: stringType,
+	guardId: stringType,
+	email: stringType,
+	password: stringType,
 	superior: { type: Boolean, required: true },
 	changes: [],
 });
 
 const change = new Schema({
-	section: { type: String, required: true },
-	history: [],
+	section: stringType,
+	changelog: [],
 	coverData: {
-		name: { type: String, required: true },
-		date: { type: String, required: true },
-		shift: { type: String, required: true },
-		day: { type: String, required: true },
-		guardId: { type: String, required: true },
+		name: stringType,
+		date: stringType,
+		shift: stringType,
+		day: stringType,
+		guardId: stringType,
 	},
 	returnData: {
-		name: { type: String, required: true },
-		date: { type: String, required: true },
-		shift: { type: String, required: true },
-		day: { type: String, required: true },
-		guardId: { type: String, required: true },
+		name: stringType,
+		date: stringType,
+		shift: stringType,
+		day: stringType,
+		guardId: stringType,
 	},
-	status: { type: String, required: true },
+	status: stringType,
+}).index({ createdAt: 1 }, { expireAfterSeconds: 5184000 });
+
+const request = new Schema({
+	name: stringType,
+	requestData: {
+		date: stringType,
+		shift: stringType,
+		day: stringType,
+		guardId: stringType,
+	},
+	offerData: {
+		date: stringType,
+		shift: stringType,
+		day: stringType,
+		guardId: stringType,
+	},
+	section: stringType,
+}).index({ createdAt: 1 }, { expireAfterSeconds: 5184000 });
+
+const affected = new Schema({
+	name: stringType,
+	affectedData: {
+		date: stringType,
+		shift: stringType,
+		day: stringType,
+		guardId: stringType,
+	},
+	disaffectedData: {
+		date: stringType,
+		shift: stringType,
+		day: stringType,
+		guardId: stringType,
+	},
+	bookPage: stringType,
+	section: stringType,
 }).index({ createdAt: 1 }, { expireAfterSeconds: 5184000 });
 
 const User = mongoose.model('user', user);
 const Change = mongoose.model('change', change);
+const Request = mongoose.model('request', request);
+const Affected = mongoose.model('affected', affected);
 
-export default { User, Change };
+export default { User, Change, Request, Affected };
