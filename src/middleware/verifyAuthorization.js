@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 export const verifyAuthorization = (req, res, next) => {
 	try {
 		const token = req.headers.authorization.split(' ')[1];
+		if (!token) res.send({ error: 'Error' });
 		const tokenData = jwt.verify(token, 'codigo_ultrasecreto_no_compartir');
 		req.userData = {
 			userId: tokenData.userId,
