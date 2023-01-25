@@ -50,7 +50,7 @@ const all = async (req, res) => {
 		res.send(sortedItems);
 	} catch (error) {
 		console.log(error);
-		res.send({ error: error.toString() });
+		res.status(500).send({ error: error.toString() });
 	}
 };
 
@@ -105,7 +105,7 @@ const cancel = async (req, res) => {
 };
 
 const edit = async (req, res) => {
-	const { changeId, coverName, returnName } = req.body;
+	const { changeId, coverName, returnName, comment } = req.body;
 
 	let result;
 	let userName = req.userData.fullName;
@@ -114,6 +114,7 @@ const edit = async (req, res) => {
 		if (!coverName.new) {
 			let changelogItem = luxon.changelog(
 				[`Quien devuelve: '${returnName.previous}' --> '${returnName.new}'`],
+				comment.length ? comment : null,
 				userName,
 			);
 			result = await db.Change.findOneAndUpdate(
@@ -129,6 +130,7 @@ const edit = async (req, res) => {
 		if (!returnName.new) {
 			let changelogItem = luxon.changelog(
 				[`Quien cubre: '${coverName.previous}' --> '${coverName.new}'`],
+				comment.length ? comment : null,
 				userName,
 			);
 			result = await db.Change.findOneAndUpdate(
@@ -147,6 +149,7 @@ const edit = async (req, res) => {
 					`Quien cubre: '${coverName.previous}' --> '${coverName.new}'`,
 					`Quien devuelve: '${returnName.previous}' --> '${returnName.new}'`,
 				],
+				comment.length ? comment : null,
 				userName,
 			);
 			result = await db.Change.findOneAndUpdate(
@@ -167,10 +170,7 @@ const edit = async (req, res) => {
 };
 
 const modify = async (req, res) => {
-	const { type, itemId, status } = req.body;
-
-	console.log(req.body);
-	console.log(req.userData);
+	const { type, itemId, status, comment } = req.body;
 
 	if (
 		(!req.userData.superior && type !== ('change' || 'request')) ||
@@ -186,7 +186,11 @@ const modify = async (req, res) => {
 	if (type === 'affected') model = db.Affected;
 
 	let changelogItem = status
-		? luxon.changelog([`Estado: '${status.previous}' --> '${status.new}'`], req.userData.fullName)
+		? luxon.changelog(
+				[`Estado: '${status.previous}' --> '${status.new}'`],
+				comment.length ? comment : null,
+				req.userData.fullName,
+		  )
 		: null;
 
 	try {
@@ -200,10 +204,7 @@ const modify = async (req, res) => {
 						$set: { status: status.new },
 					},
 			  )
-			: { _id: '63af31ca55ef35ddedafb991' };
-		// : await model.findOneAndDelete({ _id: itemId });
-		console.log(result);
-		console.log(changelogItem);
+			: await model.findOneAndDelete({ _id: itemId });
 		res.send({ result, changelogItem });
 	} catch (error) {
 		console.log(error);

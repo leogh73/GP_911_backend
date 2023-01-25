@@ -4,16 +4,16 @@ import cors from 'cors';
 import dotenv from 'dotenv/config';
 import './src/modules/mongodb.js';
 
-app.use(json());
+app.use(express.json());
 app.use(cors({ origin: true }));
 
 import userRoutes from './src/routes/users_routes.js';
 import spreadsheetRoutes from './src/routes/spreadsheet_routes.js';
-import listRoutes from './src/routes/list_routes.js';
+import itemRoutes from './src/routes/item_routes.js';
 
 app.use('/api/user', userRoutes);
 app.use('/api/spreadsheet', spreadsheetRoutes);
-app.use('/api/list', listRoutes);
+app.use('/api/item', itemRoutes);
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => console.log(`Listening on port ${port}`));

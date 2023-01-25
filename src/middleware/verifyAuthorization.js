@@ -1,9 +1,8 @@
 import jwt from 'jsonwebtoken';
 
-export const verifyAuthorization = (req, res, next) => {
+export const verifyAuthorization = async (req, res, next) => {
 	try {
 		const token = req.headers.authorization.split(' ')[1];
-		if (!token) res.send({ error: 'Error' });
 		const tokenData = jwt.verify(token, 'codigo_ultrasecreto_no_compartir');
 		req.userData = {
 			userId: tokenData.userId,
@@ -15,7 +14,6 @@ export const verifyAuthorization = (req, res, next) => {
 		next();
 	} catch (error) {
 		console.log(error);
-		console.log(res);
-		return res.send({ error: 'Not authorized' });
+		res.status(403).send({ error: 'Not authorized' });
 	}
 };
