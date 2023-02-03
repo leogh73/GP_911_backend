@@ -9,6 +9,5 @@ router.post('/all', item.all);
 router.post('/new', item.newOne);
 router.post('/edit', item.edit);
 router.post('/modify', item.modify);
-router.post('/cancel', item.cancel);
 
 export default router;

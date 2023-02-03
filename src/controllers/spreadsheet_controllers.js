@@ -1,5 +1,9 @@
-import listControllers from './item_controllers.js';
 import { consultSpreadsheet } from '../modules/googleSheets.js';
+import filterList from '../controllers/spreadsheet_controllers.js';
+import db from '../modules/mongodb.js';
+import luxon from '../modules/luxon.js';
+import itemControllers from './item_controllers.js';
+import { clouddebugger } from 'googleapis/build/src/apis/clouddebugger/index.js';
 
 const guardDay = async (req, res) => {
 	const { date } = req.body;
@@ -43,51 +47,218 @@ const guardToday = async (req, res) => {
 	}
 };
 
-const guardMonthOwn = async (section, guardId, fullName) => {
-	// const { changesCover, changesReturn } = await searchChanges(
-	// 	section,
-	// 	'coverName',
-	// 	fullName,
-	// 	'returnName',
-	// 	fullName,
-	// );
+const scheduleMonth = async (req, res) => {
+	try {
+		const { values } = (await consultSpreadsheet(true, null, null, 'Buscador!B44:F81', 'ROWS'))
+			.data;
 
-	// console.log(changesCover, changesReturn);
+		const pastTest = (testDate, testTime, night) => {
+			let date = new Date(Date.now());
+			let splittedTime = luxon.getTime().split(':');
+			let dateToday = new Date(date.getFullYear(), date.getMonth(), date.getDate()).setHours(
+				splittedTime[0],
+				splittedTime[1],
+				splittedTime[2],
+				0,
+			);
+			let dateToTest = new Date(testDate[2], testDate[1] - 1, testDate[0]).setHours(
+				testTime,
+				0,
+				0,
+				0,
+			);
 
-	const generateGuardData = (data) => {
-		let guardsData = {
-			guardsList: [],
-			guardsResume: [],
+			return dateToTest < dateToday ? true : false;
 		};
 
-		data.forEach((d) => {
-			let dayGuard = {};
-			dayGuard.date = d[0];
-			dayGuard.day = d[4];
-			if (d[1] === guardId) dayGuard.shift = '6 a 14 hs.';
-			if (d[2] === guardId) dayGuard.shift = '14 a 22 hs.';
-			if (d[3] === guardId) dayGuard.shift = '22 a 6 hs.';
-			dayGuard.resume = `${d[0]} - ${d[4]} - ${dayGuard.shift}`;
-			guardsData.guardsResume.push(dayGuard.resume);
-			guardsData.guardsList.push(dayGuard);
+		const schedule = values.map((day) => {
+			let splittedDay = day[0].toString().split('/');
+			return {
+				date: `${splittedDay[0].padStart(2, 0)}/${splittedDay[1].padStart(2, 0)}/${
+					splittedDay[2]
+				}`,
+				day: day[4],
+				morning: {
+					guardId: day[1],
+					status: req.userData.guardId === day[1] ? 'work' : 'off',
+					type: 'normal',
+					past: pastTest(splittedDay, 6),
+				},
+				afternoon: {
+					guardId: day[2],
+					status: req.userData.guardId === day[2] ? 'work' : 'off',
+					type: 'normal',
+					past: pastTest(splittedDay, 22),
+				},
+				night: {
+					guardId: day[3],
+					status: req.userData.guardId === day[3] ? 'work' : 'off',
+					type: 'normal',
+					past: pastTest(splittedDay, 23),
+				},
+			};
 		});
 
-		return guardsData;
-	};
+		const userChanges = await Promise.all([
+			db.Change.find({
+				section: req.userData.section,
+				'coverData.name': req.userData.fullName,
+			}),
+			db.Change.find({
+				section: req.userData.section,
+				'returnData.name': req.userData.fullName,
+			}),
+			db.Affected.find({
+				section: req.userData.section,
+				name: req.userData.fullName,
+			}),
+		]);
 
-	try {
-		const consult = await consultSpreadsheet(
-			false,
-			'Buscador!B15',
-			guardId,
-			'Buscador!B25:F40',
-			'ROWS',
-		);
-		const result = generateGuardData(consult.data.values);
-		return result;
+		const userSchedule = schedule.map((day) => {
+			let workDay = day;
+			userChanges[0].forEach((change) => {
+				if (day.date === change.coverData.date) {
+					if (change.coverData.guardId === day.morning.guardId) {
+						workDay.morning.status = 'work';
+						workDay.morning.type = 'change';
+					}
+					if (change.coverData.guardId === day.afternoon.guardId) {
+						workDay.afternoon.status = 'work';
+						workDay.afternoon.type = 'change';
+					}
+					if (change.coverData.guardId === day.night.guardId) {
+						workDay.night.status = 'work';
+						workDay.night.type = 'change';
+					}
+				}
+				if (day.date === change.returnData.date) {
+					if (change.returnData.guardId === day.morning.guardId) {
+						workDay.morning.status = 'off';
+						workDay.morning.type = 'change';
+					}
+					if (change.returnData.guardId === day.afternoon.guardId) {
+						workDay.afternoon.status = 'off';
+						workDay.afternoon.type = 'change';
+					}
+					if (change.returnData.guardId === day.night.guardId) {
+						workDay.night.status = 'off';
+						workDay.morning.type = 'change';
+					}
+				}
+			});
+			userChanges[1].forEach((change) => {
+				if (day.date === change.coverData.date) {
+					if (change.coverData.guardId === day.morning.guardId) {
+						workDay.morning.status = 'off';
+						workDay.morning.type = 'change';
+					}
+					if (change.coverData.guardId === day.afternoon.guardId) {
+						workDay.afternoon.status = 'off';
+						workDay.afternoon.type = 'change';
+					}
+					if (change.coverData.guardId === day.night.guardId) {
+						workDay.night.status = 'off';
+						workDay.night.type = 'change';
+					}
+				}
+				if (day.date === change.returnData.date) {
+					if (change.returnData.guardId === day.morning.guardId) {
+						workDay.morning.status = 'work';
+						workDay.morning.type = 'change';
+					}
+					if (change.returnData.guardId === day.afternoon.guardId) {
+						workDay.afternoon.status = 'work';
+						workDay.afternoon.type = 'change';
+					}
+					if (change.returnData.guardId === day.night.guardId) {
+						workDay.night.status = 'work';
+						workDay.night.type = 'change';
+					}
+				}
+			});
+			userChanges[2].forEach((change) => {
+				if (day.date === change.affectedData.date) {
+					if (change.affectedData.guardId === day.morning.guardId) {
+						workDay.morning.status = 'work';
+						workDay.morning.type = 'affected';
+					}
+					if (change.affectedData.guardId === day.afternoon.guardId) {
+						workDay.afternoon.status = 'work';
+						workDay.afternoon.type = 'affected';
+					}
+					if (change.affectedData.guardId === day.night.guardId) {
+						workDay.night.status = 'work';
+						workDay.night.type = 'affected';
+					}
+				}
+				if (day.date === change.disaffectedData.date) {
+					if (change.disaffectedData.guardId === day.morning.guardId) {
+						workDay.morning.status = 'off';
+						workDay.morning.type = 'affected';
+					}
+					if (change.disaffectedData.guardId === day.afternoon.guardId) {
+						workDay.afternoon.status = 'off';
+						workDay.afternoon.type = 'affected';
+					}
+					if (change.disaffectedData.guardId === day.night.guardId) {
+						workDay.night.status = 'off';
+						workDay.night.type = 'affected';
+					}
+				}
+			});
+			return workDay;
+		});
+
+		if (userSchedule[0].day !== 'Domingo')
+			userSchedule.splice(0, userSchedule.findIndex((i) => i.day === 'Domingo') + 1);
+
+		// console.log(userSchedule[0]);
+
+		let splittedSchedule = [];
+		const chunkSize = 7;
+		for (let i = 0; userSchedule.length > i; i += chunkSize) {
+			let weekSchedule = userSchedule.slice(i, i + chunkSize);
+			let headersList = weekSchedule.map((day) => `${day.day} - ${day.date}`);
+			let morningSchedule = weekSchedule.map((day) => {
+				return {
+					guardId: day.morning.guardId,
+					status: day.morning.status,
+					type: day.morning.type,
+					past: day.morning.past,
+				};
+			});
+			let afternoonSchedule = weekSchedule.map((day) => {
+				return {
+					guardId: day.afternoon.guardId,
+					status: day.afternoon.status,
+					type: day.afternoon.type,
+					past: day.afternoon.past,
+				};
+			});
+			let nightSchedule = weekSchedule.map((day) => {
+				return {
+					guardId: day.night.guardId,
+					status: day.night.status,
+					type: day.night.type,
+					past: day.night.past,
+				};
+			});
+			headersList.unshift('Día / Turno');
+			morningSchedule.unshift({ guardId: '06 a 14 hs.', status: 'off' });
+			afternoonSchedule.unshift({ guardId: '14 a 22 hs.', status: 'off' });
+			nightSchedule.unshift({ guardId: '22 a 06 hs.', status: 'off' });
+			splittedSchedule.push({
+				headersList,
+				shifts: [morningSchedule, afternoonSchedule, nightSchedule],
+			});
+		}
+		if (splittedSchedule[splittedSchedule.length - 1].headersList.length < 7)
+			splittedSchedule.pop();
+		// console.log(splittedSchedule[0].shifts[0]);
+		return res.send({ schedule: splittedSchedule });
 	} catch (error) {
 		console.log(error);
-		res.send({ mensaje: 'No se pudo realizar la consulta.' });
+		res.send({ error: 'No se pudo realizar la consulta.' });
 	}
 };
 
@@ -153,4 +324,9 @@ const allUsers = async (req, res) => {
 	}
 };
 
-export default { guardDay, guardToday, guardMonthOwn, guardMonthTotal, allUsers };
+export default {
+	guardDay,
+	scheduleMonth,
+	guardMonthTotal,
+	allUsers,
+};

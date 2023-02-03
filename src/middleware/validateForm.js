@@ -13,7 +13,7 @@ const register = async (req, res, next) => {
 	try {
 		verification = await Promise.all([search(username), search(email)]);
 	} catch (error) {
-		return { error: error };
+		return res.send({ error: error.toString() });
 	}
 
 	if (verification[0] || verification[1]) {

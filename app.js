@@ -7,7 +7,7 @@ import './src/modules/mongodb.js';
 app.use(express.json());
 app.use(cors({ origin: true }));
 
-import userRoutes from './src/routes/users_routes.js';
+import userRoutes from './src/routes/user_routes.js';
 import spreadsheetRoutes from './src/routes/spreadsheet_routes.js';
 import itemRoutes from './src/routes/item_routes.js';
 
