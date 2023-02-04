@@ -61,17 +61,13 @@ const scheduleMonth = async (req, res) => {
 				splittedTime[2],
 				0,
 			);
-			let dateToTest = new Date(testDate[2], testDate[1] - 1, testDate[0]).setHours(
-				testTime,
-				0,
-				0,
-				0,
-			);
-
+			let testDay = !!night ? night[0].split('/')[0] : testDate[0];
+			let testMonth = !!night ? night[0].split('/')[1] : testDate[1];
+			let dateToTest = new Date(testDate[2], testMonth - 1, testDay).setHours(testTime, 0, 0, 0);
 			return dateToTest < dateToday ? true : false;
 		};
 
-		const schedule = values.map((day) => {
+		const schedule = values.map((day, i) => {
 			let splittedDay = day[0].toString().split('/');
 			return {
 				date: `${splittedDay[0].padStart(2, 0)}/${splittedDay[1].padStart(2, 0)}/${
@@ -81,23 +77,28 @@ const scheduleMonth = async (req, res) => {
 				morning: {
 					guardId: day[1],
 					status: req.userData.guardId === day[1] ? 'work' : 'off',
-					type: 'normal',
-					past: pastTest(splittedDay, 6),
+					type: null,
+					detail: null,
+					past: pastTest(splittedDay, 14, null),
 				},
 				afternoon: {
 					guardId: day[2],
 					status: req.userData.guardId === day[2] ? 'work' : 'off',
-					type: 'normal',
-					past: pastTest(splittedDay, 22),
+					type: null,
+					detail: null,
+					past: pastTest(splittedDay, 22, null),
 				},
 				night: {
 					guardId: day[3],
 					status: req.userData.guardId === day[3] ? 'work' : 'off',
-					type: 'normal',
-					past: pastTest(splittedDay, 23),
+					type: null,
+					detail: null,
+					past: pastTest(splittedDay, 6, values[i + 1]),
 				},
 			};
 		});
+
+		schedule.splice(0, schedule.findIndex((i) => i.day === 'Domingo') + 1);
 
 		const userChanges = await Promise.all([
 			db.Change.find({
@@ -121,58 +122,47 @@ const scheduleMonth = async (req, res) => {
 					if (change.coverData.guardId === day.morning.guardId) {
 						workDay.morning.status = 'work';
 						workDay.morning.type = 'change';
+						workDay.morning.detail = change;
 					}
 					if (change.coverData.guardId === day.afternoon.guardId) {
 						workDay.afternoon.status = 'work';
 						workDay.afternoon.type = 'change';
+						workDay.afternoon.detail = change;
 					}
 					if (change.coverData.guardId === day.night.guardId) {
 						workDay.night.status = 'work';
 						workDay.night.type = 'change';
+						workDay.night.detail = change;
 					}
 				}
 				if (day.date === change.returnData.date) {
-					if (change.returnData.guardId === day.morning.guardId) {
-						workDay.morning.status = 'off';
-						workDay.morning.type = 'change';
-					}
-					if (change.returnData.guardId === day.afternoon.guardId) {
+					if (change.returnData.guardId === day.morning.guardId) workDay.morning.status = 'off';
+					if (change.returnData.guardId === day.afternoon.guardId)
 						workDay.afternoon.status = 'off';
-						workDay.afternoon.type = 'change';
-					}
-					if (change.returnData.guardId === day.night.guardId) {
-						workDay.night.status = 'off';
-						workDay.morning.type = 'change';
-					}
+					if (change.returnData.guardId === day.night.guardId) workDay.night.status = 'off';
 				}
 			});
 			userChanges[1].forEach((change) => {
 				if (day.date === change.coverData.date) {
-					if (change.coverData.guardId === day.morning.guardId) {
-						workDay.morning.status = 'off';
-						workDay.morning.type = 'change';
-					}
-					if (change.coverData.guardId === day.afternoon.guardId) {
-						workDay.afternoon.status = 'off';
-						workDay.afternoon.type = 'change';
-					}
-					if (change.coverData.guardId === day.night.guardId) {
-						workDay.night.status = 'off';
-						workDay.night.type = 'change';
-					}
+					if (change.coverData.guardId === day.morning.guardId) workDay.morning.status = 'off';
+					if (change.coverData.guardId === day.afternoon.guardId) workDay.afternoon.status = 'off';
+					if (change.coverData.guardId === day.night.guardId) workDay.night.status = 'off';
 				}
 				if (day.date === change.returnData.date) {
 					if (change.returnData.guardId === day.morning.guardId) {
 						workDay.morning.status = 'work';
 						workDay.morning.type = 'change';
+						workDay.morning.detail = change;
 					}
 					if (change.returnData.guardId === day.afternoon.guardId) {
 						workDay.afternoon.status = 'work';
 						workDay.afternoon.type = 'change';
+						workDay.afternoon.detail = change;
 					}
 					if (change.returnData.guardId === day.night.guardId) {
 						workDay.night.status = 'work';
 						workDay.night.type = 'change';
+						workDay.night.detail = change;
 					}
 				}
 			});
@@ -181,36 +171,29 @@ const scheduleMonth = async (req, res) => {
 					if (change.affectedData.guardId === day.morning.guardId) {
 						workDay.morning.status = 'work';
 						workDay.morning.type = 'affected';
+						workDay.morning.detail = change;
 					}
 					if (change.affectedData.guardId === day.afternoon.guardId) {
 						workDay.afternoon.status = 'work';
 						workDay.afternoon.type = 'affected';
+						workDay.afternoon.detail = change;
 					}
 					if (change.affectedData.guardId === day.night.guardId) {
 						workDay.night.status = 'work';
 						workDay.night.type = 'affected';
+						workDay.night.detail = change;
 					}
 				}
 				if (day.date === change.disaffectedData.date) {
-					if (change.disaffectedData.guardId === day.morning.guardId) {
+					if (change.disaffectedData.guardId === day.morning.guardId)
 						workDay.morning.status = 'off';
-						workDay.morning.type = 'affected';
-					}
-					if (change.disaffectedData.guardId === day.afternoon.guardId) {
+					if (change.disaffectedData.guardId === day.afternoon.guardId)
 						workDay.afternoon.status = 'off';
-						workDay.afternoon.type = 'affected';
-					}
-					if (change.disaffectedData.guardId === day.night.guardId) {
-						workDay.night.status = 'off';
-						workDay.night.type = 'affected';
-					}
+					if (change.disaffectedData.guardId === day.night.guardId) workDay.night.status = 'off';
 				}
 			});
 			return workDay;
 		});
-
-		if (userSchedule[0].day !== 'Domingo')
-			userSchedule.splice(0, userSchedule.findIndex((i) => i.day === 'Domingo') + 1);
 
 		// console.log(userSchedule[0]);
 
@@ -224,6 +207,7 @@ const scheduleMonth = async (req, res) => {
 					guardId: day.morning.guardId,
 					status: day.morning.status,
 					type: day.morning.type,
+					detail: day.morning.detail,
 					past: day.morning.past,
 				};
 			});
@@ -232,6 +216,7 @@ const scheduleMonth = async (req, res) => {
 					guardId: day.afternoon.guardId,
 					status: day.afternoon.status,
 					type: day.afternoon.type,
+					detail: day.afternoon.detail,
 					past: day.afternoon.past,
 				};
 			});
@@ -240,13 +225,14 @@ const scheduleMonth = async (req, res) => {
 					guardId: day.night.guardId,
 					status: day.night.status,
 					type: day.night.type,
+					detail: day.night.detail,
 					past: day.night.past,
 				};
 			});
 			headersList.unshift('Día / Turno');
-			morningSchedule.unshift({ guardId: '06 a 14 hs.', status: 'off' });
-			afternoonSchedule.unshift({ guardId: '14 a 22 hs.', status: 'off' });
-			nightSchedule.unshift({ guardId: '22 a 06 hs.', status: 'off' });
+			morningSchedule.unshift({ guardId: '06 a 14 hs.', status: 'shift' });
+			afternoonSchedule.unshift({ guardId: '14 a 22 hs.', status: 'shift' });
+			nightSchedule.unshift({ guardId: '22 a 06 hs.', status: 'shift' });
 			splittedSchedule.push({
 				headersList,
 				shifts: [morningSchedule, afternoonSchedule, nightSchedule],
@@ -254,6 +240,7 @@ const scheduleMonth = async (req, res) => {
 		}
 		if (splittedSchedule[splittedSchedule.length - 1].headersList.length < 7)
 			splittedSchedule.pop();
+
 		// console.log(splittedSchedule[0].shifts[0]);
 		return res.send({ schedule: splittedSchedule });
 	} catch (error) {
