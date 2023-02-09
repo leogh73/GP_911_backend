@@ -1,5 +1,4 @@
 import luxon from '../modules/luxon.js';
-import mongodb from '../modules/mongodb.js';
 import db from '../modules/mongodb.js';
 
 const all = async (req, res) => {
@@ -25,7 +24,7 @@ const newOne = async (req, res) => {
 	let newElement;
 	if (type === 'change') {
 		const { coverData, returnData } = req.body;
-		newElement = mongodb.Change({
+		newElement = db.Change({
 			changelog: [luxon.changelog(['Creación'], null, coverData.name)],
 			coverData,
 			returnData,
@@ -35,11 +34,11 @@ const newOne = async (req, res) => {
 	}
 	if (type === 'request') {
 		const { name, requestData, offerData } = req.body;
-		newElement = mongodb.Request({ name, requestData, offerData });
+		newElement = db.Request({ name, requestData, offerData });
 	}
 	if (type === 'affected') {
 		const { name, affectedData, disaffectedData, bookPage } = req.body;
-		newElement = mongodb.Affected({ name, affectedData, disaffectedData, bookPage });
+		newElement = db.Affected({ name, affectedData, disaffectedData, bookPage });
 	}
 
 	try {

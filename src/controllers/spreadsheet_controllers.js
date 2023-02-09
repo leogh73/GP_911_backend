@@ -3,7 +3,6 @@ import filterList from '../controllers/spreadsheet_controllers.js';
 import db from '../modules/mongodb.js';
 import luxon from '../modules/luxon.js';
 import itemControllers from './item_controllers.js';
-import { clouddebugger } from 'googleapis/build/src/apis/clouddebugger/index.js';
 
 const guardDay = async (req, res) => {
 	const { date } = req.body;
@@ -49,7 +48,7 @@ const guardToday = async (req, res) => {
 
 const scheduleMonth = async (req, res) => {
 	try {
-		const { values } = (await consultSpreadsheet(true, null, null, 'Buscador!B44:F81', 'ROWS'))
+		const { values } = (await consultSpreadsheet(true, null, null, 'Buscador!B44:F92', 'ROWS'))
 			.data;
 
 		const pastTest = (testDate, testTime, night) => {
@@ -76,21 +75,21 @@ const scheduleMonth = async (req, res) => {
 				day: day[4],
 				morning: {
 					guardId: day[1],
-					status: req.userData.guardId === day[1] ? 'work' : 'off',
+					status: !req.userData.superior && req.userData.guardId === day[1] ? 'work' : null,
 					type: null,
 					detail: null,
 					past: pastTest(splittedDay, 14, null),
 				},
 				afternoon: {
 					guardId: day[2],
-					status: req.userData.guardId === day[2] ? 'work' : 'off',
+					status: !req.userData.superior && req.userData.guardId === day[2] ? 'work' : null,
 					type: null,
 					detail: null,
 					past: pastTest(splittedDay, 22, null),
 				},
 				night: {
 					guardId: day[3],
-					status: req.userData.guardId === day[3] ? 'work' : 'off',
+					status: !req.userData.superior && req.userData.guardId === day[3] ? 'work' : null,
 					type: null,
 					detail: null,
 					past: pastTest(splittedDay, 6, values[i + 1]),
@@ -98,39 +97,54 @@ const scheduleMonth = async (req, res) => {
 			};
 		});
 
-		schedule.splice(0, schedule.findIndex((i) => i.day === 'Domingo') + 1);
+		schedule.splice(
+			0,
+			schedule.findIndex((i) => i.day === 'Lunes'),
+		);
 
-		const userChanges = await Promise.all([
-			db.Change.find({
-				section: req.userData.section,
-				'coverData.name': req.userData.fullName,
-			}),
-			db.Change.find({
-				section: req.userData.section,
-				'returnData.name': req.userData.fullName,
-			}),
-			db.Affected.find({
-				section: req.userData.section,
-				name: req.userData.fullName,
-			}),
-		]);
+		const userChanges = req.userData.superior
+			? await Promise.all([
+					db.Change.find({
+						section: req.userData.section,
+					}),
+					db.Change.find({
+						section: req.userData.section,
+					}),
+					db.Affected.find({
+						section: req.userData.section,
+					}),
+			  ])
+			: await Promise.all([
+					db.Change.find({
+						section: req.userData.section,
+						'coverData.name': req.userData.fullName,
+					}),
+					db.Change.find({
+						section: req.userData.section,
+						'returnData.name': req.userData.fullName,
+					}),
+					db.Affected.find({
+						section: req.userData.section,
+						name: req.userData.fullName,
+					}),
+			  ]);
 
 		const userSchedule = schedule.map((day) => {
 			let workDay = day;
 			userChanges[0].forEach((change) => {
 				if (day.date === change.coverData.date) {
 					if (change.coverData.guardId === day.morning.guardId) {
-						workDay.morning.status = 'work';
+						workDay.morning.status = req.userData.superior ? null : 'work';
 						workDay.morning.type = 'change';
 						workDay.morning.detail = change;
 					}
 					if (change.coverData.guardId === day.afternoon.guardId) {
-						workDay.afternoon.status = 'work';
+						workDay.afternoon.status = req.userData.superior ? null : 'work';
 						workDay.afternoon.type = 'change';
 						workDay.afternoon.detail = change;
 					}
 					if (change.coverData.guardId === day.night.guardId) {
-						workDay.night.status = 'work';
+						workDay.night.status = req.userData.superior ? null : 'work';
 						workDay.night.type = 'change';
 						workDay.night.detail = change;
 					}
@@ -150,17 +164,17 @@ const scheduleMonth = async (req, res) => {
 				}
 				if (day.date === change.returnData.date) {
 					if (change.returnData.guardId === day.morning.guardId) {
-						workDay.morning.status = 'work';
+						workDay.morning.status = req.userData.superior ? null : 'work';
 						workDay.morning.type = 'change';
 						workDay.morning.detail = change;
 					}
 					if (change.returnData.guardId === day.afternoon.guardId) {
-						workDay.afternoon.status = 'work';
+						workDay.afternoon.status = req.userData.superior ? null : 'work';
 						workDay.afternoon.type = 'change';
 						workDay.afternoon.detail = change;
 					}
 					if (change.returnData.guardId === day.night.guardId) {
-						workDay.night.status = 'work';
+						workDay.night.status = req.userData.superior ? null : 'work';
 						workDay.night.type = 'change';
 						workDay.night.detail = change;
 					}
@@ -169,17 +183,17 @@ const scheduleMonth = async (req, res) => {
 			userChanges[2].forEach((change) => {
 				if (day.date === change.affectedData.date) {
 					if (change.affectedData.guardId === day.morning.guardId) {
-						workDay.morning.status = 'work';
+						workDay.morning.status = req.userData.superior ? null : 'work';
 						workDay.morning.type = 'affected';
 						workDay.morning.detail = change;
 					}
 					if (change.affectedData.guardId === day.afternoon.guardId) {
-						workDay.afternoon.status = 'work';
+						workDay.afternoon.status = req.userData.superior ? null : 'work';
 						workDay.afternoon.type = 'affected';
 						workDay.afternoon.detail = change;
 					}
 					if (change.affectedData.guardId === day.night.guardId) {
-						workDay.night.status = 'work';
+						workDay.night.status = req.userData.superior ? null : 'work';
 						workDay.night.type = 'affected';
 						workDay.night.detail = change;
 					}
@@ -195,7 +209,7 @@ const scheduleMonth = async (req, res) => {
 			return workDay;
 		});
 
-		// console.log(userSchedule[0]);
+		console.log(userSchedule[0]);
 
 		let splittedSchedule = [];
 		const chunkSize = 7;
@@ -241,8 +255,40 @@ const scheduleMonth = async (req, res) => {
 		if (splittedSchedule[splittedSchedule.length - 1].headersList.length < 7)
 			splittedSchedule.pop();
 
+		let fullSchedule = {
+			headersList: ['Día / Turno', '6 a 14 hs.', '14 a 22 hs.', '22 a 6 hs.'],
+			shifts: userSchedule.map((day) => {
+				return {
+					day: `${day.day} - ${day.date}`,
+					shifts: [
+						{
+							guardId: day.morning.guardId,
+							status: day.morning.status,
+							type: day.morning.type,
+							detail: day.morning.detail,
+							past: day.morning.past,
+						},
+						{
+							guardId: day.afternoon.guardId,
+							status: day.afternoon.status,
+							type: day.afternoon.type,
+							detail: day.afternoon.detail,
+							past: day.afternoon.past,
+						},
+						{
+							guardId: day.night.guardId,
+							status: day.night.status,
+							type: day.night.type,
+							detail: day.night.detail,
+							past: day.night.past,
+						},
+					],
+				};
+			}),
+		};
+
 		// console.log(splittedSchedule[0].shifts[0]);
-		return res.send({ schedule: splittedSchedule });
+		return res.send({ splittedSchedule, fullSchedule });
 	} catch (error) {
 		console.log(error);
 		res.send({ error: 'No se pudo realizar la consulta.' });
