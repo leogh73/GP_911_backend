@@ -48,8 +48,10 @@ const guardToday = async (req, res) => {
 
 const scheduleMonth = async (req, res) => {
 	try {
-		const { values } = (await consultSpreadsheet(true, null, null, 'Buscador!B44:F92', 'ROWS'))
-			.data;
+		const days = (await consultSpreadsheet(true, null, null, 'Buscador!B44:F92', 'ROWS')).data
+			.values;
+		const allGuards = (await consultSpreadsheet(true, null, null, `Personal!A2:F7`, 'COLUMNS'))
+			.data.values;
 
 		const pastTest = (testDate, testTime, night) => {
 			let date = new Date(Date.now());
@@ -66,7 +68,7 @@ const scheduleMonth = async (req, res) => {
 			return dateToTest < dateToday ? true : false;
 		};
 
-		const schedule = values.map((day, i) => {
+		const schedule = days.map((day, i) => {
 			let splittedDay = day[0].toString().split('/');
 			return {
 				date: `${splittedDay[0].padStart(2, 0)}/${splittedDay[1].padStart(2, 0)}/${
@@ -75,24 +77,24 @@ const scheduleMonth = async (req, res) => {
 				day: day[4],
 				morning: {
 					guardId: day[1],
-					status: !req.userData.superior && req.userData.guardId === day[1] ? 'work' : null,
+					status: [],
 					type: null,
-					detail: null,
+					detail: [],
 					past: pastTest(splittedDay, 14, null),
 				},
 				afternoon: {
 					guardId: day[2],
-					status: !req.userData.superior && req.userData.guardId === day[2] ? 'work' : null,
+					status: [],
 					type: null,
-					detail: null,
+					detail: [],
 					past: pastTest(splittedDay, 22, null),
 				},
 				night: {
 					guardId: day[3],
-					status: !req.userData.superior && req.userData.guardId === day[3] ? 'work' : null,
+					status: [],
 					type: null,
-					detail: null,
-					past: pastTest(splittedDay, 6, values[i + 1]),
+					detail: [],
+					past: pastTest(splittedDay, 6, days[i + 1]),
 				},
 			};
 		});
@@ -102,114 +104,156 @@ const scheduleMonth = async (req, res) => {
 			schedule.findIndex((i) => i.day === 'Lunes'),
 		);
 
-		const userChanges = req.userData.superior
-			? await Promise.all([
-					db.Change.find({
-						section: req.userData.section,
-					}),
-					db.Change.find({
-						section: req.userData.section,
-					}),
-					db.Affected.find({
-						section: req.userData.section,
-					}),
-			  ])
-			: await Promise.all([
-					db.Change.find({
-						section: req.userData.section,
-						'coverData.name': req.userData.fullName,
-					}),
-					db.Change.find({
-						section: req.userData.section,
-						'returnData.name': req.userData.fullName,
-					}),
-					db.Affected.find({
-						section: req.userData.section,
-						name: req.userData.fullName,
-					}),
-			  ]);
+		const userChanges = await Promise.all([
+			db.Change.find({
+				section: req.userData.section,
+			}),
+			db.Affected.find({
+				section: req.userData.section,
+			}),
+		]);
 
 		const userSchedule = schedule.map((day) => {
 			let workDay = day;
 			userChanges[0].forEach((change) => {
 				if (day.date === change.coverData.date) {
 					if (change.coverData.guardId === day.morning.guardId) {
-						workDay.morning.status = req.userData.superior ? null : 'work';
+						workDay.morning.status.push(change.coverData.name);
 						workDay.morning.type = 'change';
-						workDay.morning.detail = change;
+						workDay.morning.detail.push({
+							toReplace: change.returnData.name,
+							replaceWith: change.coverData.name,
+						});
 					}
 					if (change.coverData.guardId === day.afternoon.guardId) {
-						workDay.afternoon.status = req.userData.superior ? null : 'work';
+						workDay.afternoon.status.push(change.coverData.name);
 						workDay.afternoon.type = 'change';
-						workDay.afternoon.detail = change;
+						workDay.afternoon.detail.push({
+							toReplace: change.returnData.name,
+							replaceWith: change.coverData.name,
+						});
 					}
 					if (change.coverData.guardId === day.night.guardId) {
-						workDay.night.status = req.userData.superior ? null : 'work';
+						workDay.night.status.push(change.coverData.name);
 						workDay.night.type = 'change';
-						workDay.night.detail = change;
+						workDay.night.detail.push({
+							toReplace: change.returnData.name,
+							replaceWith: change.coverData.name,
+						});
 					}
-				}
-				if (day.date === change.returnData.date) {
-					if (change.returnData.guardId === day.morning.guardId) workDay.morning.status = 'off';
-					if (change.returnData.guardId === day.afternoon.guardId)
-						workDay.afternoon.status = 'off';
-					if (change.returnData.guardId === day.night.guardId) workDay.night.status = 'off';
-				}
-			});
-			userChanges[1].forEach((change) => {
-				if (day.date === change.coverData.date) {
-					if (change.coverData.guardId === day.morning.guardId) workDay.morning.status = 'off';
-					if (change.coverData.guardId === day.afternoon.guardId) workDay.afternoon.status = 'off';
-					if (change.coverData.guardId === day.night.guardId) workDay.night.status = 'off';
 				}
 				if (day.date === change.returnData.date) {
 					if (change.returnData.guardId === day.morning.guardId) {
-						workDay.morning.status = req.userData.superior ? null : 'work';
-						workDay.morning.type = 'change';
-						workDay.morning.detail = change;
+						workDay.morning.status.push(change.returnData.name);
+						workDay.morning.detail.push({
+							toReplace: change.coverData.name,
+							replaceWith: change.returnData.name,
+						});
 					}
 					if (change.returnData.guardId === day.afternoon.guardId) {
-						workDay.afternoon.status = req.userData.superior ? null : 'work';
-						workDay.afternoon.type = 'change';
-						workDay.afternoon.detail = change;
+						workDay.afternoon.status.push(change.returnData.name);
+						workDay.afternoon.detail.push({
+							toReplace: change.coverData.name,
+							replaceWith: change.returnData.name,
+						});
 					}
 					if (change.returnData.guardId === day.night.guardId) {
-						workDay.night.status = req.userData.superior ? null : 'work';
-						workDay.night.type = 'change';
-						workDay.night.detail = change;
+						workDay.night.status.push(change.returnData.name);
+						workDay.night.detail.push({
+							toReplace: change.coverData.name,
+							replaceWith: change.returnData.name,
+						});
 					}
 				}
 			});
-			userChanges[2].forEach((change) => {
+			userChanges[1].forEach((change) => {
 				if (day.date === change.affectedData.date) {
 					if (change.affectedData.guardId === day.morning.guardId) {
-						workDay.morning.status = req.userData.superior ? null : 'work';
+						workDay.morning.status.push(change.name);
 						workDay.morning.type = 'affected';
-						workDay.morning.detail = change;
+						workDay.morning.detail.push({
+							toReplace: null,
+							replaceWith: change.name,
+						});
 					}
 					if (change.affectedData.guardId === day.afternoon.guardId) {
-						workDay.afternoon.status = req.userData.superior ? null : 'work';
+						workDay.afternoon.status.push(change.name);
 						workDay.afternoon.type = 'affected';
-						workDay.afternoon.detail = change;
+						workDay.afternoon.detail.push({
+							toReplace: null,
+							replaceWith: change.name,
+						});
 					}
 					if (change.affectedData.guardId === day.night.guardId) {
-						workDay.night.status = req.userData.superior ? null : 'work';
+						workDay.night.status.push(change.name);
 						workDay.night.type = 'affected';
-						workDay.night.detail = change;
+						workDay.night.detail.push({
+							toReplace: null,
+							replaceWith: change.name,
+						});
 					}
 				}
 				if (day.date === change.disaffectedData.date) {
-					if (change.disaffectedData.guardId === day.morning.guardId)
-						workDay.morning.status = 'off';
-					if (change.disaffectedData.guardId === day.afternoon.guardId)
-						workDay.afternoon.status = 'off';
-					if (change.disaffectedData.guardId === day.night.guardId) workDay.night.status = 'off';
+					if (change.disaffectedData.guardId === day.morning.guardId) {
+						workDay.morning.status.push(change.name);
+						workDay.morning.detail.push({
+							toReplace: change.name,
+							replaceWith: null,
+						});
+					}
+					if (change.disaffectedData.guardId === day.afternoon.guardId) {
+						workDay.afternoon.status.push(change.name);
+						workDay.afternoon.detail.push({
+							toReplace: change.name,
+							replaceWith: null,
+						});
+					}
+					if (change.disaffectedData.guardId === day.night.guardId) {
+						workDay.night.status.push(change.name);
+						workDay.night.detail.push({
+							toReplace: change.name,
+							replaceWith: null,
+						});
+					}
 				}
 			});
 			return workDay;
 		});
 
-		console.log(userSchedule[0]);
+		const shiftDetail = (guardId, replaceData) => {
+			let guard;
+			if (guardId === 'A') guard = [...allGuards[0]];
+			if (guardId === 'B') guard = [...allGuards[1]];
+			if (guardId === 'C') guard = [...allGuards[2]];
+			if (guardId === 'D') guard = [...allGuards[3]];
+			if (guardId === 'E') guard = [...allGuards[4]];
+			if (guardId === 'F') guard = [...allGuards[5]];
+
+			if (replaceData.length) {
+				replaceData.forEach((replaceDay) => {
+					if (replaceDay.toReplace && replaceDay.replaceWith) {
+						guard[
+							guard.indexOf(replaceDay.toReplace)
+						] = `${replaceDay.replaceWith} (por ${replaceDay.toReplace})`;
+					}
+					if (!replaceDay.toReplace && replaceDay.replaceWith)
+						guard.push(`${replaceDay.replaceWith} (afectado)`);
+					if (!replaceDay.replaceWith && replaceDay.toReplace)
+						guard[guard.indexOf(replaceDay.toReplace)] = `${replaceDay.toReplace} (desafectado)`;
+				});
+			}
+			return guard;
+		};
+
+		const shiftStatus = (guardId, nameList) => {
+			if (req.userData.superior) return null;
+			let work = req.userData.guardId === guardId ? true : false;
+			for (let name of nameList) {
+				if (req.userData.fullName === name.replaceWith) work = true;
+				if (req.userData.fullName === name.toReplace) work = false;
+			}
+			return work ? 'work' : 'off';
+		};
 
 		let splittedSchedule = [];
 		const chunkSize = 7;
@@ -219,27 +263,27 @@ const scheduleMonth = async (req, res) => {
 			let morningSchedule = weekSchedule.map((day) => {
 				return {
 					guardId: day.morning.guardId,
-					status: day.morning.status,
+					status: shiftStatus(day.morning.guardId, day.morning.detail),
 					type: day.morning.type,
-					detail: day.morning.detail,
+					detail: shiftDetail(day.morning.guardId, day.morning.detail),
 					past: day.morning.past,
 				};
 			});
 			let afternoonSchedule = weekSchedule.map((day) => {
 				return {
 					guardId: day.afternoon.guardId,
-					status: day.afternoon.status,
+					status: shiftStatus(day.afternoon.guardId, day.afternoon.detail),
 					type: day.afternoon.type,
-					detail: day.afternoon.detail,
+					detail: shiftDetail(day.afternoon.guardId, day.afternoon.detail),
 					past: day.afternoon.past,
 				};
 			});
 			let nightSchedule = weekSchedule.map((day) => {
 				return {
 					guardId: day.night.guardId,
-					status: day.night.status,
+					status: shiftStatus(day.night.guardId, day.night.detail),
 					type: day.night.type,
-					detail: day.night.detail,
+					detail: shiftDetail(day.night.guardId, day.night.detail),
 					past: day.night.past,
 				};
 			});
@@ -252,6 +296,7 @@ const scheduleMonth = async (req, res) => {
 				shifts: [morningSchedule, afternoonSchedule, nightSchedule],
 			});
 		}
+
 		if (splittedSchedule[splittedSchedule.length - 1].headersList.length < 7)
 			splittedSchedule.pop();
 
@@ -263,23 +308,23 @@ const scheduleMonth = async (req, res) => {
 					shifts: [
 						{
 							guardId: day.morning.guardId,
-							status: day.morning.status,
+							status: shiftStatus(day.morning.guardId, day.morning.detail),
 							type: day.morning.type,
-							detail: day.morning.detail,
+							detail: shiftDetail(day.morning.guardId, day.morning.detail),
 							past: day.morning.past,
 						},
 						{
 							guardId: day.afternoon.guardId,
-							status: day.afternoon.status,
+							status: shiftStatus(day.afternoon.guardId, day.afternoon.detail),
 							type: day.afternoon.type,
-							detail: day.afternoon.detail,
+							detail: shiftDetail(day.afternoon.guardId, day.afternoon.detail),
 							past: day.afternoon.past,
 						},
 						{
 							guardId: day.night.guardId,
-							status: day.night.status,
+							status: shiftStatus(day.night.guardId, day.night.detail),
 							type: day.night.type,
-							detail: day.night.detail,
+							detail: shiftDetail(day.night.guardId, day.night.detail),
 							past: day.night.past,
 						},
 					],
