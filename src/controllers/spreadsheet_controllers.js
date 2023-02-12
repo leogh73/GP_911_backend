@@ -332,13 +332,14 @@ const scheduleMonth = async (req, res) => {
 			}),
 		};
 
-		// console.log(splittedSchedule[0].shifts[0]);
 		return res.send({ splittedSchedule, fullSchedule });
 	} catch (error) {
 		console.log(error);
 		res.send({ error: 'No se pudo realizar la consulta.' });
 	}
 };
+
+const search = () => {};
 
 const guardMonthTotal = async (req, res) => {
 	const { date } = req.body;
@@ -395,6 +396,8 @@ const allUsers = async (req, res) => {
 	try {
 		const consult = await consultSpreadsheet(true, null, null, 'Personal!A2:F7', 'COLUMNS');
 		const userList = consult.data.values.flat().sort();
+
+		console.log(userList);
 		res.send(userList);
 	} catch (error) {
 		console.log(error);
