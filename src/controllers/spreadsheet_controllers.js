@@ -8,35 +8,35 @@ const scheduleMonth = async (req, res) => {
 		return res.send({ splittedSchedule, fullSchedule });
 	} catch (error) {
 		console.log(error);
-		res.send({ error: 'No se pudo realizar la consulta.' });
+		res.send({ error: 'An error ocurred.' });
 	}
 };
 
 const scheduleSearch = async (req, res) => {
 	try {
-		console.log(req.body);
 		const { splittedSchedule, fullSchedule } = await generateSchedule(req.userData, req.body.date);
 		return res.send({ splittedSchedule, fullSchedule });
 	} catch (error) {
 		console.log(error);
-		res.send({ error: 'No se pudo realizar la consulta.' });
+		res.send({ error: 'An error ocurred.' });
 	}
 };
+
 const allUsers = async (req, res) => {
 	try {
 		const consult = await consultSpreadsheet(true, null, null, 'Personal!A2:F7', 'COLUMNS');
-		const userList = consult.data.values.flat().sort();
+		const userList = consult.flat().sort();
 		res.send(userList);
 	} catch (error) {
 		console.log(error);
-		res.send({ error: 'No se pudo realizar la consulta.' });
+		res.send({ error: 'An error ocurred.' });
 	}
 };
 
 const generateSchedule = async (userData, date) => {
 	console.log(date);
 	let searchDate = date
-		? consultSpreadsheet(false, 'Buscador!B130', date, 'Buscador!B115:F145', 'ROWS')
+		? consultSpreadsheet(false, 'Buscador!B137', date, 'Buscador!B115:F159', 'ROWS')
 		: consultSpreadsheet(true, null, null, 'Buscador!B44:F92', 'ROWS');
 
 	const spreadSheetData = await Promise.all([
@@ -89,6 +89,13 @@ const generateSchedule = async (userData, date) => {
 		0,
 		schedule.findIndex((i) => i.day === 'Lunes'),
 	);
+
+	// if (date) {
+	// 	schedule
+	// 	let scheduleSearch = [...schedule];
+	// 	let index = scheduleSearch.reverse().findIndex((i) => i.day === 'Lunes') + 1;
+	// 	schedule.splice(0, schedule.length - index);
+	// }
 
 	const userChanges = await Promise.all([
 		db.Change.find({
@@ -255,13 +262,12 @@ const generateSchedule = async (userData, date) => {
 		morningSchedule.unshift({ guardId: '06 a 14 hs.', status: 'shift' });
 		afternoonSchedule.unshift({ guardId: '14 a 22 hs.', status: 'shift' });
 		nightSchedule.unshift({ guardId: '22 a 06 hs.', status: 'shift' });
-		splittedSchedule.push({
-			headersList,
-			shifts: [morningSchedule, afternoonSchedule, nightSchedule],
-		});
+		if (headersList.length === 8)
+			splittedSchedule.push({
+				headersList,
+				shifts: [morningSchedule, afternoonSchedule, nightSchedule],
+			});
 	}
-
-	if (splittedSchedule[splittedSchedule.length - 1].headersList.length < 7) splittedSchedule.pop();
 
 	let fullSchedule = {
 		headersList: ['Día / Turno', '6 a 14 hs.', '14 a 22 hs.', '22 a 6 hs.'],

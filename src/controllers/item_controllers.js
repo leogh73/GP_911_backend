@@ -14,7 +14,7 @@ const all = async (req, res) => {
 		res.send(sortedItems);
 	} catch (error) {
 		console.log(error);
-		res.status(500).send({ error: error.toString() });
+		res.send({ error: error.toString() });
 	}
 };
 
@@ -56,28 +56,8 @@ const newOne = async (req, res) => {
 	}
 };
 
-// const cancel = async (req, res) => {
-// 	const { changeId } = req.body;
-
-// 	if (req.userData.superior) return res.send({ error: 'Error' });
-
-// 	try {
-// 		let result = await db.Change.findOneAndUpdate(
-// 			{ _id: changeId },
-// 			{ $set: { status: 'Cancelado' } },
-// 		);
-// 		res.send(result);
-// 	} catch (error) {
-// 		console.log(error);
-
-// 		res.send({ error: error.toString() });
-// 	}
-// };
-
 const edit = async (req, res) => {
 	const { changeId, coverName, returnName, comment } = req.body;
-
-	console.log(comment);
 
 	let result;
 	let userName = req.userData.fullName;
@@ -148,7 +128,6 @@ const modify = async (req, res) => {
 		(!req.userData.superior && type !== ('change' || 'request')) ||
 		(req.userData.superior && type === 'cancel')
 	) {
-		console.log('ERROR!!');
 		return res.send({ error: 'Error' });
 	}
 
@@ -183,19 +162,6 @@ const modify = async (req, res) => {
 		res.send({ error: error.toString() });
 	}
 };
-
-// const search = async (section, coverFilter, coverData, returnFilter, returnData) => {
-// 	const changesCover = await changeModel.find({
-// 		[coverFilter]: coverData,
-// 		status: /^Aprobado/,
-// 	});
-
-// 	const changesReturn = await changeModel.find({
-// 		[returnFilter]: returnData,
-// 		status: /^Aprobado/,
-// 	});
-// 	return { changesCover, changesReturn };
-// };
 
 const itemDate = (type, number, itemData) => {
 	if (type === 'change')

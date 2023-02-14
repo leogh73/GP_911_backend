@@ -25,7 +25,7 @@ export const consultSpreadsheet = async (
 				values: [[writeValue]],
 			},
 		});
-		await new Promise((resolve) => setTimeout(resolve, 300));
+		await new Promise((resolve) => setTimeout(resolve, 500));
 	}
 	const readData = googleSheets.spreadsheets.values.get({
 		spreadsheetId,

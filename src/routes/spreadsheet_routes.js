@@ -8,6 +8,5 @@ router.use(verifyAuthorization);
 router.get('/month', spreadsheet.scheduleMonth);
 router.post('/search', spreadsheet.scheduleSearch);
 router.get('/users', spreadsheet.allUsers);
-// router.post('/monthtotal', spreadsheet.guardMonthTotal);
 
 export default router;
