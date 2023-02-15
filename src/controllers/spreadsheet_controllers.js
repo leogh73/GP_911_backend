@@ -34,7 +34,6 @@ const allUsers = async (req, res) => {
 };
 
 const generateSchedule = async (userData, date) => {
-	console.log(date);
 	let searchDate = date
 		? consultSpreadsheet(false, 'Buscador!B137', date, 'Buscador!B115:F159', 'ROWS')
 		: consultSpreadsheet(true, null, null, 'Buscador!B44:F92', 'ROWS');
@@ -61,26 +60,32 @@ const generateSchedule = async (userData, date) => {
 
 	const schedule = spreadSheetData[0].map((day, i) => {
 		let splittedDay = day[0].toString().split('/');
+		let scheduleDay = `${splittedDay[0].padStart(2, 0)}/${splittedDay[1].padStart(2, 0)}/${
+			splittedDay[2]
+		}`;
 		return {
-			date: `${splittedDay[0].padStart(2, 0)}/${splittedDay[1].padStart(2, 0)}/${splittedDay[2]}`,
+			date: scheduleDay,
 			day: day[4],
 			morning: {
 				guardId: day[1],
 				status: [],
 				detail: [],
 				past: pastTest(splittedDay, 14, null),
+				selected: scheduleDay === date ? true : false,
 			},
 			afternoon: {
 				guardId: day[2],
 				status: [],
 				detail: [],
 				past: pastTest(splittedDay, 22, null),
+				selected: scheduleDay === date ? true : false,
 			},
 			night: {
 				guardId: day[3],
 				status: [],
 				detail: [],
 				past: pastTest(splittedDay, 6, spreadSheetData[0][i + 1]),
+				selected: scheduleDay === date ? true : false,
 			},
 		};
 	});
@@ -89,13 +94,6 @@ const generateSchedule = async (userData, date) => {
 		0,
 		schedule.findIndex((i) => i.day === 'Lunes'),
 	);
-
-	// if (date) {
-	// 	schedule
-	// 	let scheduleSearch = [...schedule];
-	// 	let index = scheduleSearch.reverse().findIndex((i) => i.day === 'Lunes') + 1;
-	// 	schedule.splice(0, schedule.length - index);
-	// }
 
 	const userChanges = await Promise.all([
 		db.Change.find({
@@ -238,6 +236,7 @@ const generateSchedule = async (userData, date) => {
 				type: day.morning.type,
 				detail: shiftDetail(day.morning.guardId, day.morning.detail),
 				past: day.morning.past,
+				selected: day.morning.selected,
 			};
 		});
 		let afternoonSchedule = weekSchedule.map((day) => {
@@ -247,6 +246,7 @@ const generateSchedule = async (userData, date) => {
 				type: day.afternoon.type,
 				detail: shiftDetail(day.afternoon.guardId, day.afternoon.detail),
 				past: day.afternoon.past,
+				selected: day.afternoon.selected,
 			};
 		});
 		let nightSchedule = weekSchedule.map((day) => {
@@ -256,6 +256,7 @@ const generateSchedule = async (userData, date) => {
 				type: day.night.type,
 				detail: shiftDetail(day.night.guardId, day.night.detail),
 				past: day.night.past,
+				selected: day.night.selected,
 			};
 		});
 		headersList.unshift('Día / Turno');
@@ -281,6 +282,7 @@ const generateSchedule = async (userData, date) => {
 						type: day.morning.type,
 						detail: shiftDetail(day.morning.guardId, day.morning.detail),
 						past: day.morning.past,
+						selected: day.morning.selected,
 					},
 					{
 						guardId: day.afternoon.guardId,
@@ -288,6 +290,7 @@ const generateSchedule = async (userData, date) => {
 						type: day.afternoon.type,
 						detail: shiftDetail(day.afternoon.guardId, day.afternoon.detail),
 						past: day.afternoon.past,
+						selected: day.afternoon.selected,
 					},
 					{
 						guardId: day.night.guardId,
@@ -295,6 +298,7 @@ const generateSchedule = async (userData, date) => {
 						type: day.night.type,
 						detail: shiftDetail(day.night.guardId, day.night.detail),
 						past: day.night.past,
+						selected: day.night.selected,
 					},
 				],
 			};
@@ -309,98 +313,3 @@ export default {
 	scheduleSearch,
 	allUsers,
 };
-
-// const guardMonthTotal = async (req, res) => {
-// 	const { date } = req.body;
-
-// 	try {
-// 		const consult = await consultSpreadsheet(
-// 			false,
-// 			'Buscador!B3',
-// 			date,
-// 			'Buscador!B44:F74',
-// 			'ROWS',
-// 		);
-// 		res.send(consult.data.values);
-// 	} catch (error) {
-// 		console.log(error);
-// 		res.send({ mensaje: 'No se pudo realizar la consulta.' });
-// 	}
-// };
-
-// const loadStaff = (changesCover, changesReturn, data) => {
-// 	let guardStaff = [];
-// 	for (let i = 3; i < data.length; i++) {
-// 		let name = data[i];
-// 		let newName = name;
-// 		if (changesCover.length && changesCover[0].returnName === name) {
-// 			newName = changesCover[0].coverName;
-// 		}
-// 		if (changesReturn.length && changesReturn[0].coverName === name) {
-// 			newName = changesReturn[0].returnName;
-// 		}
-// 		guardStaff.push(newName);
-// 	}
-// 	return guardStaff;
-// };
-
-// const loadDayGuards = (read) => {
-// 	return [
-// 		{
-// 			shift: '6 a 14 hs.',
-// 			guardId: read[0][1],
-// 		},
-// 		{
-// 			shift: '14 a 22 hs.',
-// 			guardId: read[1][1],
-// 		},
-// 		{
-// 			shift: '22 a 6 hs.',
-// 			guardId: read[2][1],
-// 		},
-// 	];
-// };
-
-// const guardDay = async (req, res) => {
-// 	const { date } = req.body;
-// 	try {
-// 		const { values } = (
-// 			await consultSpreadsheet(false, 'Buscador!B3', date, 'Buscador!C2:F11', 'COLUMNS')
-// 		).data;
-// 		// const { changesCover, changesReturn } = await changesControllers.search(
-// 		// 	req.userData.section,
-// 		// 	'coverData.date',
-// 		// 	date,
-// 		// 	'returnData.date',
-// 		// 	date,
-// 		// );
-// 		let dayGuard = loadDayGuards(values);
-// 		res.send(dayGuard);
-// 	} catch (error) {
-// 		console.log(error);
-// 		res.send({ mensaje: 'No se pudo realizar la consulta.' });
-// 	}
-// };
-
-// const guardToday = async (req, res) => {
-// 	try {
-// 		const read = await consultSpreadsheet(true, null, null, 'Hoy!C2:F11', 'COLUMNS');
-
-// 		const date = new Date(Date.now()).toLocaleString('es-AR').split(' ')[0];
-
-// 		const { changesCover, changesReturn } = await searchChanges(
-// 			req.userData.section,
-// 			'resultCover.date',
-// 			date,
-// 			'resultReturn.date',
-// 			date,
-// 		);
-
-// 		let dayGuard = loadDayGuards(changesCover, changesReturn, read);
-
-// 		res.send(dayGuard);
-// 	} catch (error) {
-// 		console.log(error);
-// 		res.send({ mensaje: 'No se pudo realizar la consulta.' });
-// 	}
-// };
