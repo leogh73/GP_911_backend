@@ -16,6 +16,7 @@ const register = async (req, res) => {
 	let userSection;
 	if (section === 'Teléfonía') userSection = 'Phoning';
 	if (section === 'Monitoreo') userSection = 'Monitoring';
+	if (section === 'Despacho') userSection = 'Dispatch';
 
 	const newUser = new db.User({
 		username,
@@ -70,6 +71,49 @@ const login = async (req, res) => {
 	});
 };
 
+const changePassword = async (req, res) => {
+	const { newPassword } = req.body;
+	const { userId } = req.userData;
+
+	let encryptedPassword;
+	try {
+		let salt = await bcrypt.genSalt(12);
+		encryptedPassword = await bcrypt.hash(newPassword, salt);
+	} catch (error) {
+		return res.send({ error: 'Bcrypt' });
+	}
+
+	try {
+		const result = await db.User.findOneAndUpdate(
+			{ _id: userId },
+			{ $set: { password: encryptedPassword } },
+		);
+		return res.send(result);
+	} catch (error) {
+		return res.send({ error: 'Change password' });
+	}
+};
+
+const forgotPassword = async (req, res) => {
+	const { newPassword } = req.body;
+	const { model } = req.userData;
+
+	let encryptedPassword;
+	try {
+		let salt = await bcrypt.genSalt(12);
+		encryptedPassword = await bcrypt.hash(newPassword, salt);
+	} catch (error) {
+		return res.send({ error: 'Bcrypt' });
+	}
+
+	try {
+		const result = await model.findOneAndUpdate({ password: encryptedPassword });
+		return res.send(result);
+	} catch (err) {
+		return res.send({ error: 'error' });
+	}
+};
+
 const renewToken = async (req, res) => {
 	const { usernameOrEmail, section, guardId, superior, userId } = req.userData;
 
@@ -98,4 +142,4 @@ const allUsers = async (req, res) => {
 	} catch (error) {}
 };
 
-export default { register, login, renewToken, allUsers };
+export default { register, login, changePassword, forgotPassword, renewToken };
