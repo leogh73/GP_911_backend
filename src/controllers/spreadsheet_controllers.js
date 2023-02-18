@@ -33,6 +33,37 @@ const allUsers = async (req, res) => {
 	}
 };
 
+const guardDay = async (req, res) => {
+	const { date } = req.body;
+	try {
+		const consult = await consultSpreadsheet(
+			false,
+			'Buscador!B3',
+			date,
+			'Buscador!C2:F11',
+			'COLUMNS',
+		);
+		let dayGuard = [
+			{
+				shift: '6 a 14 hs.',
+				guardId: consult[0][1],
+			},
+			{
+				shift: '14 a 22 hs.',
+				guardId: consult[1][1],
+			},
+			{
+				shift: '22 a 6 hs.',
+				guardId: consult[2][1],
+			},
+		];
+		res.send(dayGuard);
+	} catch (error) {
+		console.log(error);
+		res.send({ mensaje: 'No se pudo realizar la consulta.' });
+	}
+};
+
 const generateSchedule = async (userData, date) => {
 	let searchDate = date
 		? consultSpreadsheet(false, 'Buscador!B137', date, 'Buscador!B115:F159', 'ROWS')
@@ -312,4 +343,5 @@ export default {
 	scheduleMonth,
 	scheduleSearch,
 	allUsers,
+	guardDay,
 };

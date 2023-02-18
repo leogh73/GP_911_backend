@@ -14,6 +14,7 @@ const register = async (req, res) => {
 	}
 
 	let userSection;
+	if (!section.length) section = req.userData.section;
 	if (section === 'Teléfonía') userSection = 'Phoning';
 	if (section === 'Monitoreo') userSection = 'Monitoring';
 	if (section === 'Despacho') userSection = 'Dispatch';
@@ -28,6 +29,7 @@ const register = async (req, res) => {
 		email,
 		password: encryptedPassword,
 		superior: false,
+		admin: false,
 		changes: [],
 	});
 
@@ -43,18 +45,13 @@ const register = async (req, res) => {
 };
 
 const login = async (req, res) => {
-	const { userId, firstName, lastName, section, guardId, superior } = req.body.userData;
+	const { userId, firstName, lastName, section, guardId, superior, admin } = req.body.userData;
+	let fullName = `${lastName} ${firstName}`;
 
 	let token;
 	try {
 		token = jwt.sign(
-			{
-				userId,
-				fullName: `${lastName} ${firstName}`,
-				section,
-				guardId,
-				superior,
-			},
+			{ userId, fullName, section, guardId, superior, admin },
 			'codigo_ultrasecreto_no_compartir',
 			{ expiresIn: '1h' },
 		);
@@ -62,13 +59,7 @@ const login = async (req, res) => {
 		return res.send({ error: 'error' });
 	}
 
-	res.send({
-		token,
-		firstName,
-		lastName,
-		guardId,
-		superior,
-	});
+	res.send({ token, firstName, lastName, guardId, superior, admin });
 };
 
 const changePassword = async (req, res) => {
@@ -120,13 +111,7 @@ const renewToken = async (req, res) => {
 	let newToken;
 	try {
 		newToken = sign(
-			{
-				usernameOrEmail,
-				section,
-				guardId,
-				superior,
-				userId,
-			},
+			{ usernameOrEmail, section, guardId, superior, userId },
 			'codigo_ultrasecreto_no_compartir',
 			{ expiresIn: '1h' },
 		);

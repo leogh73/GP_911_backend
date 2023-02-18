@@ -25,6 +25,7 @@ const user = new Schema({
 	email: stringType,
 	password: stringType,
 	superior: { type: Boolean, required: true },
+	admin: { type: Boolean, required: true },
 	changes: [],
 });
 
