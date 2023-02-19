@@ -7,6 +7,7 @@ const scheduleMonth = async (req, res) => {
 		const { splittedSchedule, fullSchedule } = await generateSchedule(req.userData, null);
 		return res.send({ splittedSchedule, fullSchedule });
 	} catch (error) {
+		await db.storeLog('Schedule creation', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
 		res.send({ error: 'An error ocurred.' });
 	}
@@ -17,6 +18,7 @@ const scheduleSearch = async (req, res) => {
 		const { splittedSchedule, fullSchedule } = await generateSchedule(req.userData, req.body.date);
 		return res.send({ splittedSchedule, fullSchedule });
 	} catch (error) {
+		await db.storeLog('Schedule search', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
 		res.send({ error: 'An error ocurred.' });
 	}
@@ -28,6 +30,7 @@ const allUsers = async (req, res) => {
 		const userList = consult.flat().sort();
 		res.send(userList);
 	} catch (error) {
+		await db.storeLog('Get all users', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
 		res.send({ error: 'An error ocurred.' });
 	}
@@ -59,6 +62,7 @@ const guardDay = async (req, res) => {
 		];
 		res.send(dayGuard);
 	} catch (error) {
+		await db.storeLog('Get day guards', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
 		res.send({ mensaje: 'No se pudo realizar la consulta.' });
 	}

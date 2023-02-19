@@ -8,6 +8,7 @@ export const verifyAuthorization = async (req, res, next) => {
 		req.userData = { userId, fullName, section, guardId, superior, admin };
 		next();
 	} catch (error) {
+		await db.storeLog('Authorization', { body: req.body, headers: req.headers }, error);
 		console.log(error);
 		res.status(403).send({ error: 'Not authorized' });
 	}

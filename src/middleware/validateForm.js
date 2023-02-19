@@ -13,6 +13,7 @@ const register = async (req, res, next) => {
 	try {
 		verification = await Promise.all([search(username), search(email)]);
 	} catch (error) {
+		await db.storeLog('DB search', { userId: req.userData.userId, body: req.body }, error);
 		return res.send({ error: error.toString() });
 	}
 
@@ -33,6 +34,7 @@ const login = async (req, res, next) => {
 	try {
 		storedData = await search(usernameOrEmail);
 	} catch (error) {
+		await db.storeLog('DB search', { userId: req.userData.userId, body: req.body }, error);
 		return res.send({ error: 'error' });
 	}
 
@@ -42,6 +44,7 @@ const login = async (req, res, next) => {
 	try {
 		validationPassword = await bcrypt.compare(password, storedData.password);
 	} catch (error) {
+		await db.storeLog('Bcrypt check', { userId: req.userData.userId, body: req.body }, error);
 		return res.send({ error: 'error' });
 	}
 
@@ -61,6 +64,7 @@ const changePassword = async (req, res, next) => {
 	try {
 		storedData = await db.User.findById(req.userData.userId);
 	} catch (error) {
+		await db.storeLog('DB search', { userId: req.userData.userId, body: req.body }, error);
 		return res.send({ error: 'User not found' });
 	}
 
@@ -70,6 +74,7 @@ const changePassword = async (req, res, next) => {
 	try {
 		validationPassword = await bcrypt.compare(currentPassword, storedData.password);
 	} catch (error) {
+		await db.storeLog('Wrong password', { userId: req.userData.userId, body: req.body }, error);
 		return res.send({ error: 'Wrong password' });
 	}
 

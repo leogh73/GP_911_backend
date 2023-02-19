@@ -13,6 +13,7 @@ const all = async (req, res) => {
 		let sortedItems = sortList(type, filteredItems, false);
 		res.send(sortedItems);
 	} catch (error) {
+		await db.storeLog('Get all changes', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
 		res.send({ error: error.toString() });
 	}
@@ -51,6 +52,7 @@ const newOne = async (req, res) => {
 		let result = await newElement.save();
 		res.send(result);
 	} catch (error) {
+		await db.storeLog('Create new item', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
 		res.send({ error: error.toString() });
 	}
@@ -116,6 +118,7 @@ const edit = async (req, res) => {
 		}
 		res.send(result);
 	} catch (error) {
+		await db.storeLog('Edit change', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
 		res.send({ error: error.toString() });
 	}
@@ -158,6 +161,7 @@ const modify = async (req, res) => {
 			: await model.findOneAndDelete({ _id: itemId });
 		res.send({ result, changelogItem });
 	} catch (error) {
+		await db.storeLog('Modify change', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
 		res.send({ error: error.toString() });
 	}

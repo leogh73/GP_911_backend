@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import luxon from '../modules/luxon.js';
 import vars from '../modules/crypto-js.js';
 const Schema = mongoose.Schema;
 
@@ -15,7 +16,7 @@ mongoose
 
 const stringType = { type: String, required: true };
 
-const user = new Schema({
+const userSchema = new Schema({
 	username: stringType,
 	lastName: stringType,
 	firstName: stringType,
@@ -29,7 +30,7 @@ const user = new Schema({
 	changes: [],
 });
 
-const change = new Schema({
+const changeSchema = new Schema({
 	section: stringType,
 	changelog: [],
 	coverData: {
@@ -49,7 +50,7 @@ const change = new Schema({
 	status: stringType,
 }).index({ createdAt: 1 }, { expireAfterSeconds: 5184000 });
 
-const request = new Schema({
+const requestSchema = new Schema({
 	name: stringType,
 	requestData: {
 		date: stringType,
@@ -66,7 +67,7 @@ const request = new Schema({
 	section: stringType,
 }).index({ createdAt: 1 }, { expireAfterSeconds: 5184000 });
 
-const affected = new Schema({
+const affectedSchema = new Schema({
 	name: stringType,
 	affectedData: {
 		date: stringType,
@@ -84,9 +85,29 @@ const affected = new Schema({
 	section: stringType,
 }).index({ createdAt: 1 }, { expireAfterSeconds: 5184000 });
 
-const User = mongoose.model('user', user);
-const Change = mongoose.model('change', change);
-const Request = mongoose.model('request', request);
-const Affected = mongoose.model('affected', affected);
+const logSchema = new Schema({
+	actionName: { type: String, required: true },
+	actionDetail: { type: Object, required: true },
+	errorMessage: { type: String, required: true },
+	date: { type: String, required: true },
+	time: { type: String, required: true },
+});
 
-export default { User, Change, Request, Affected };
+const User = mongoose.model('user', userSchema);
+const Change = mongoose.model('change', changeSchema);
+const Request = mongoose.model('request', requestSchema);
+const Affected = mongoose.model('affected', affectedSchema);
+const Log = mongoose.model('log', logSchema);
+
+const storeLog = async (actionName, actionDetail, errorMessage) => {
+	let message = luxon.errorMessage();
+	return await new Log({
+		actionName,
+		actionDetail,
+		errorMessage,
+		date: message.date,
+		time: message.time,
+	}).save();
+};
+
+export default { User, Change, Request, Affected, storeLog };
