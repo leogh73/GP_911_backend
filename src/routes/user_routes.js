@@ -11,6 +11,7 @@ router.use(verifyAuthorization);
 
 router.post('/change-password', validateForm.changePassword, user.changePassword);
 router.post('/forgot-password', validateForm.forgotPassword, user.forgotPassword);
-router.post('/renewtoken', verifyAuthorization, user.renewToken);
+router.post('/renewtoken', user.renewToken);
+router.post('/allusers', user.allUsers);
 
 export default router;

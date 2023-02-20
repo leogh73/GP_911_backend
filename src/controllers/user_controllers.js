@@ -35,7 +35,8 @@ const register = async (req, res) => {
 
 	try {
 		await newUser.save();
-	} catch (err) {
+	} catch (error) {
+		await db.storeLog('Store new user', { userId: req.userData.userId, body: req.body }, error);
 		return res.send({ error: 'error' });
 	}
 
@@ -56,6 +57,7 @@ const login = async (req, res) => {
 			{ expiresIn: '1h' },
 		);
 	} catch (error) {
+		await db.storeLog('Generate token', { userId: req.userData.userId, body: req.body }, error);
 		return res.send({ error: 'error' });
 	}
 
@@ -71,6 +73,11 @@ const changePassword = async (req, res) => {
 		let salt = await bcrypt.genSalt(12);
 		encryptedPassword = await bcrypt.hash(newPassword, salt);
 	} catch (error) {
+		await db.storeLog(
+			'Generate encrypted password',
+			{ userId: req.userData.userId, body: req.body },
+			error,
+		);
 		return res.send({ error: 'Bcrypt' });
 	}
 
@@ -81,6 +88,11 @@ const changePassword = async (req, res) => {
 		);
 		return res.send(result);
 	} catch (error) {
+		await db.storeLog(
+			'Change DB password',
+			{ userId: req.userData.userId, body: req.body },
+			error,
+		);
 		return res.send({ error: 'Change password' });
 	}
 };
@@ -123,8 +135,23 @@ const renewToken = async (req, res) => {
 };
 
 const allUsers = async (req, res) => {
+	if (!req.userData.superior && !req.userData.admin) return res.send({ error: 'User not valid' });
+
+	const { section } = req.body;
+
 	try {
-	} catch (error) {}
+		let dbUsers = await db.User.find({ section: section });
+		let allUsers = dbUsers.map((user) => {
+			const { username, lastName, firstName, ni, guardId, superior } = user;
+			return { username, lastName, firstName, ni, guardId, superior };
+		});
+		console.log(allUsers);
+		return res.send({ allUsers });
+	} catch (error) {
+		await db.storeLog('Get all users', { userId: req.userData.userId }, error);
+		console.log(error);
+		return res.send({ error: error.toString() });
+	}
 };
 
-export default { register, login, changePassword, forgotPassword, renewToken };
+export default { register, login, changePassword, forgotPassword, renewToken, allUsers };
