@@ -140,7 +140,6 @@ const generateSchedule = async (userData, date) => {
 		}),
 	]);
 
-	console.log(userChanges[0]);
 
 	const userSchedule = schedule.map((day) => {
 		let workDay = day;

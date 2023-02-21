@@ -21,6 +21,7 @@ const userSchema = new Schema({
 	lastName: stringType,
 	firstName: stringType,
 	ni: { type: Number, required: true },
+	hierarchy: stringType,
 	section: stringType,
 	guardId: stringType,
 	email: stringType,

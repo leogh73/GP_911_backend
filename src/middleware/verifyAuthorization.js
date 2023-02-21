@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import db from '../modules/mongodb.js';
 
 export const verifyAuthorization = async (req, res, next) => {
 	try {
