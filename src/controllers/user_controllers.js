@@ -142,10 +142,9 @@ const allUsers = async (req, res) => {
 	try {
 		let dbUsers = await db.User.find({ section: section });
 		let allUsers = dbUsers.map((user) => {
-			const { username, lastName, firstName, ni, hierarchy, guardId, superior } = user;
-			return { username, lastName, firstName, ni, hierarchy, guardId, superior };
+			const { lastName, firstName, ni, hierarchy, guardId, username, email, superior } = user;
+			return { lastName, firstName, ni, hierarchy, guardId, username, email, superior };
 		});
-		console.log(allUsers);
 		return res.send({ allUsers });
 	} catch (error) {
 		await db.storeLog('Get all users', { userId: req.userData.userId }, error);
