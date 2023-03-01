@@ -46,7 +46,8 @@ const register = async (req, res) => {
 };
 
 const login = async (req, res) => {
-	const { userId, firstName, lastName, section, guardId, superior, admin } = req.body.userData;
+	const { userId, firstName, lastName, ni, hierarchy, section, guardId, email, superior, admin } =
+		req.body.userData;
 	let fullName = `${lastName} ${firstName}`;
 
 	let token;
@@ -61,7 +62,18 @@ const login = async (req, res) => {
 		return res.send({ error: 'error' });
 	}
 
-	res.send({ token, firstName, lastName, guardId, superior, admin });
+	res.send({
+		token,
+		firstName,
+		lastName,
+		ni,
+		hierarchy,
+		section,
+		guardId,
+		email,
+		superior,
+		admin,
+	});
 };
 
 const changePassword = async (req, res) => {

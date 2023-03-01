@@ -35,6 +35,7 @@ const login = async (req, res, next) => {
 		storedData = await search(usernameOrEmail);
 	} catch (error) {
 		await db.storeLog('DB search', { userId: req.userData.userId, body: req.body }, error);
+		console.log(error);
 		return res.send({ error: 'error' });
 	}
 
@@ -50,9 +51,21 @@ const login = async (req, res, next) => {
 
 	if (!validationPassword) return res.send({ password: 'error' });
 
-	const { _id, firstName, lastName, section, guardId, superior, admin } = storedData.toObject();
+	const { _id, firstName, lastName, ni, hierarchy, section, guardId, email, superior, admin } =
+		storedData.toObject();
 
-	req.body.userData = { userId: _id, firstName, lastName, section, guardId, superior, admin };
+	req.body.userData = {
+		userId: _id,
+		firstName,
+		lastName,
+		ni,
+		hierarchy,
+		section,
+		guardId,
+		email,
+		superior,
+		admin,
+	};
 
 	next();
 };
