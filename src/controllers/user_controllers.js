@@ -46,8 +46,19 @@ const register = async (req, res) => {
 };
 
 const login = async (req, res) => {
-	const { userId, firstName, lastName, ni, hierarchy, section, guardId, email, superior, admin } =
-		req.body.userData;
+	const {
+		userId,
+		username,
+		firstName,
+		lastName,
+		ni,
+		hierarchy,
+		section,
+		guardId,
+		email,
+		superior,
+		admin,
+	} = req.body.userData;
 	let fullName = `${lastName} ${firstName}`;
 
 	let token;
@@ -64,6 +75,7 @@ const login = async (req, res) => {
 
 	res.send({
 		token,
+		username,
 		firstName,
 		lastName,
 		ni,

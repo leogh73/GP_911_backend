@@ -11,9 +11,8 @@ export const verifyAuthorization = async (req, res, next) => {
 	} catch (error) {
 		await db.storeLog('Authorization', { body: req.body, headers: req.headers }, error);
 		console.log(error);
-		res.status(403).send({
-			error:
-				error.toString() === 'TokenExpiredError: jwt expired' ? 'Token expired' : 'Not authorized',
-		});
+		let errorMesssage =
+			error.toString() === 'TokenExpiredError: jwt expired' ? 'Token expired' : 'Not authorized';
+		res.status(403).send({ error: errorMesssage });
 	}
 };
