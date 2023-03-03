@@ -166,8 +166,30 @@ const allUsers = async (req, res) => {
 	try {
 		let dbUsers = await db.User.find({ section: section });
 		let allUsers = dbUsers.map((user) => {
-			const { lastName, firstName, ni, hierarchy, guardId, username, email, superior } = user;
-			return { lastName, firstName, ni, hierarchy, guardId, username, email, superior };
+			const {
+				username,
+				firstName,
+				lastName,
+				ni,
+				hierarchy,
+				section,
+				guardId,
+				email,
+				superior,
+				admin,
+			} = user;
+			return {
+				username,
+				firstName,
+				lastName,
+				ni,
+				hierarchy,
+				section,
+				guardId,
+				email,
+				superior,
+				admin,
+			};
 		});
 		return res.send({ allUsers });
 	} catch (error) {
