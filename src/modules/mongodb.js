@@ -84,6 +84,7 @@ const affectedSchema = new Schema({
 	},
 	bookPage: stringType,
 	section: stringType,
+	comment: { type: String, required: false },
 }).index({ createdAt: 1 }, { expireAfterSeconds: 5184000 });
 
 const logSchema = new Schema({

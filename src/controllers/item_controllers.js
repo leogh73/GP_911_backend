@@ -38,13 +38,15 @@ const newOne = async (req, res) => {
 		newElement = db.Request({ section: req.userData.section, name, requestData, offerData });
 	}
 	if (type === 'affected') {
-		const { name, affectedData, disaffectedData, bookPage } = req.body;
+		const { name, affectedData, disaffectedData, bookPage, comment } = req.body;
+		console.log(req.body);
 		newElement = db.Affected({
 			section: req.userData.section,
 			name,
 			affectedData,
 			disaffectedData,
 			bookPage,
+			comment: comment.length ? comment : null,
 		});
 	}
 

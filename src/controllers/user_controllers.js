@@ -47,7 +47,7 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
 	const {
-		userId,
+		_id,
 		username,
 		firstName,
 		lastName,
@@ -64,17 +64,18 @@ const login = async (req, res) => {
 	let token;
 	try {
 		token = jwt.sign(
-			{ userId, fullName, section, guardId, superior, admin },
+			{ _id, fullName, section, guardId, superior, admin },
 			'codigo_ultrasecreto_no_compartir',
 			{ expiresIn: '1h' },
 		);
 	} catch (error) {
-		await db.storeLog('Generate token', { userId: req.userData.userId, body: req.body }, error);
+		await db.storeLog('Generate token', { userId: _id, body: req.body }, error);
 		return res.send({ error: 'error' });
 	}
 
 	res.send({
 		token,
+		userId: _id,
 		username,
 		firstName,
 		lastName,
@@ -164,33 +165,7 @@ const allUsers = async (req, res) => {
 	const { section } = req.body;
 
 	try {
-		let dbUsers = await db.User.find({ section: section });
-		let allUsers = dbUsers.map((user) => {
-			const {
-				username,
-				firstName,
-				lastName,
-				ni,
-				hierarchy,
-				section,
-				guardId,
-				email,
-				superior,
-				admin,
-			} = user;
-			return {
-				username,
-				firstName,
-				lastName,
-				ni,
-				hierarchy,
-				section,
-				guardId,
-				email,
-				superior,
-				admin,
-			};
-		});
+		let allUsers = await db.User.find({ section: section });
 		return res.send({ allUsers });
 	} catch (error) {
 		await db.storeLog('Get all users', { userId: req.userData.userId }, error);

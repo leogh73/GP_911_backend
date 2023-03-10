@@ -51,33 +51,7 @@ const login = async (req, res, next) => {
 
 	if (!validationPassword) return res.send({ password: 'error' });
 
-	const {
-		_id,
-		username,
-		firstName,
-		lastName,
-		ni,
-		hierarchy,
-		section,
-		guardId,
-		email,
-		superior,
-		admin,
-	} = storedData.toObject();
-
-	req.body.userData = {
-		userId: _id,
-		username,
-		firstName,
-		lastName,
-		ni,
-		hierarchy,
-		section,
-		guardId,
-		email,
-		superior,
-		admin,
-	};
+	req.body.userData = storedData;
 
 	next();
 };

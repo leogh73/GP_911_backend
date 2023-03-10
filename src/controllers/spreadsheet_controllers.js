@@ -133,13 +133,12 @@ const generateSchedule = async (userData, date) => {
 	const userChanges = await Promise.all([
 		db.Change.find({
 			section: userData.section,
-			$in: [{ status: 'Solicitado' }, { status: 'Aprobado' }],
+			$in: [{ status: 'Solicitado' }, { status: 'autorizado' }],
 		}),
 		db.Affected.find({
 			section: userData.section,
 		}),
 	]);
-
 
 	const userSchedule = schedule.map((day) => {
 		let workDay = day;
