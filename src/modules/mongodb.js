@@ -60,11 +60,12 @@ const requestSchema = new Schema({
 		guardId: stringType,
 	},
 	offerData: {
-		date: stringType,
-		shift: stringType,
-		day: stringType,
-		guardId: stringType,
+		date: { type: String, required: false },
+		shift: { type: String, required: false },
+		day: { type: String, required: false },
+		guardId: { type: String, required: false },
 	},
+	comment: { type: String, required: false },
 	section: stringType,
 }).index({ createdAt: 1 }, { expireAfterSeconds: 5184000 });
 

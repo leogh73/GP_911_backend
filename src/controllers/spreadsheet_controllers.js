@@ -133,7 +133,7 @@ const generateSchedule = async (userData, date) => {
 	const userChanges = await Promise.all([
 		db.Change.find({
 			section: userData.section,
-			$in: [{ status: 'Solicitado' }, { status: 'autorizado' }],
+			status: { $in: ['Solicitado', 'Autorizado'] },
 		}),
 		db.Affected.find({
 			section: userData.section,

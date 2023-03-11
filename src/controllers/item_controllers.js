@@ -34,8 +34,14 @@ const newOne = async (req, res) => {
 		});
 	}
 	if (type === 'request') {
-		const { name, requestData, offerData } = req.body;
-		newElement = db.Request({ section: req.userData.section, name, requestData, offerData });
+		const { name, requestData, offerData, comment } = req.body;
+		newElement = db.Request({
+			section: req.userData.section,
+			name,
+			requestData,
+			offerData,
+			comment,
+		});
 	}
 	if (type === 'affected') {
 		const { name, affectedData, disaffectedData, bookPage, comment } = req.body;
@@ -130,10 +136,10 @@ const modify = async (req, res) => {
 	const { type, itemId, status, comment } = req.body;
 
 	if (
-		(!req.userData.superior && type !== ('change' || 'request')) ||
+		(!req.userData.superior && type !== 'change' && type !== 'request') ||
 		(req.userData.superior && type === 'cancel')
 	) {
-		return res.send({ error: 'Error' });
+		return res.send({ error: 'User not valid' });
 	}
 
 	let model;
@@ -189,8 +195,9 @@ const filterList = (type, totalList) => {
 		let datePartC = itemDate(type, 1, item);
 		let datePartD = itemDate(type, 2, item);
 		let date1 = new Date(datePartC[2], datePartC[1] - 1, datePartC[0]);
-		let date2 = new Date(datePartD[2], datePartD[1] - 1, datePartD[0]);
-		if (date2 >= dateToday && date1 >= dateToday) return item;
+		let date2;
+		if (datePartD[0] !== '-') date2 = new Date(datePartD[2], datePartD[1] - 1, datePartD[0]);
+		if ((!!date2 && date2 >= dateToday && date1 >= dateToday) || date1 >= dateToday) return item;
 	});
 	return upcomingItems;
 };
