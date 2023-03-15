@@ -28,7 +28,7 @@ const userSchema = new Schema({
 	password: stringType,
 	superior: { type: Boolean, required: true },
 	admin: { type: Boolean, required: true },
-	changes: [],
+	changelog: [],
 });
 
 const changeSchema = new Schema({

@@ -1,9 +1,26 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import db from '../modules/mongodb.js';
+import luxon from '../modules/luxon.js';
+
+const search = async (value) =>
+	value.includes('@')
+		? await db.User.findOne({ email: value })
+		: await db.User.findOne({ username: value });
 
 const register = async (req, res) => {
-	const { username, lastName, firstName, ni, section, guardId, email, password } = req.body;
+	const {
+		username,
+		lastName,
+		firstName,
+		ni,
+		hierarchy,
+		section,
+		guardId,
+		superior,
+		email,
+		password,
+	} = req.body;
 
 	let encryptedPassword;
 	try {
@@ -13,31 +30,27 @@ const register = async (req, res) => {
 		return res.send({ error: 'error' });
 	}
 
-	let userSection;
-	if (!section.length) section = req.userData.section;
-	if (section === 'Teléfonía') userSection = 'Phoning';
-	if (section === 'Monitoreo') userSection = 'Monitoring';
-	if (section === 'Despacho') userSection = 'Dispatch';
-
 	const newUser = new db.User({
 		username,
 		lastName,
 		firstName,
 		ni,
-		section: userSection,
+		hierarchy,
+		section,
 		guardId,
 		email,
 		password: encryptedPassword,
-		superior: false,
+		superior: superior === 'Si' ? true : false,
 		admin: false,
-		changes: [],
+		changelog: [luxon.changelog(['Creación'], null, req.userData.fullName)],
 	});
 
 	try {
 		await newUser.save();
 	} catch (error) {
 		await db.storeLog('Store new user', { userId: req.userData.userId, body: req.body }, error);
-		return res.send({ error: 'error' });
+		console.log(error);
+		return res.send({ userId: null });
 	}
 
 	res.send({
@@ -105,6 +118,8 @@ const changePassword = async (req, res) => {
 		);
 		return res.send({ error: 'Bcrypt' });
 	}
+
+	console.log(newPassword);
 
 	try {
 		const result = await db.User.findOneAndUpdate(

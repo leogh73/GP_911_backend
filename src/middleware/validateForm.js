@@ -1,28 +1,24 @@
 import bcrypt from 'bcryptjs';
 import db from '../modules/mongodb.js';
 
-const search = async (value) =>
-	value.includes('@')
-		? await db.User.findOne({ email: value })
-		: await db.User.findOne({ username: value });
-
 const register = async (req, res, next) => {
-	const { username, email } = req.body;
+	const { ni, email } = req.body;
+
+	const search = async (value) =>
+		value.includes('@')
+			? await db.User.findOne({ email: value })
+			: await db.User.findOne({ ni: value });
 
 	let verification;
 	try {
-		verification = await Promise.all([search(username), search(email)]);
+		verification = await Promise.all([search(ni), search(email)]);
 	} catch (error) {
 		await db.storeLog('DB search', { userId: req.userData.userId, body: req.body }, error);
 		return res.send({ error: error.toString() });
 	}
 
-	if (verification[0] || verification[1]) {
-		return res.send({
-			username: verification[0] ? 'error' : null,
-			email: verification[1] ? 'error' : null,
-		});
-	}
+	if (verification[0]) return res.send({ error: 'ni' });
+	if (verification[1]) return res.send({ error: 'email' });
 
 	next();
 };
@@ -32,14 +28,16 @@ const login = async (req, res, next) => {
 
 	let storedData;
 	try {
-		storedData = await search(usernameOrEmail);
+		storedData = usernameOrEmail.includes('@')
+			? await db.User.findOne({ email: usernameOrEmail })
+			: await db.User.findOne({ username: usernameOrEmail });
 	} catch (error) {
 		await db.storeLog('DB search', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
 		return res.send({ error: 'error' });
 	}
 
-	if (!storedData) return res.send({ usernameOrEmail: 'error' });
+	if (!storedData) return res.send({ error: 'usernameOrEmail' });
 
 	let validationPassword;
 	try {
@@ -49,7 +47,7 @@ const login = async (req, res, next) => {
 		return res.send({ error: 'error' });
 	}
 
-	if (!validationPassword) return res.send({ password: 'error' });
+	if (!validationPassword) return res.send({ error: 'password' });
 
 	req.body.userData = storedData;
 
