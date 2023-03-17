@@ -235,16 +235,22 @@ const generateSchedule = async (userData, date) => {
 		if (guardId === 'F') guard = [...spreadSheetData[1][5]];
 
 		if (replaceData.length) {
+			let changeName;
 			replaceData.forEach((replaceDay) => {
 				if (replaceDay.toReplace && replaceDay.replaceWith) {
 					guard[
 						guard.indexOf(replaceDay.toReplace)
 					] = `${replaceDay.replaceWith} (por ${replaceDay.toReplace})`;
+					changeName = `${replaceDay.replaceWith} (por ${replaceDay.toReplace})`;
 				}
 				if (!replaceDay.toReplace && replaceDay.replaceWith)
 					guard.push(`${replaceDay.replaceWith} (afectado)`);
-				if (!replaceDay.replaceWith && replaceDay.toReplace)
-					guard[guard.indexOf(replaceDay.toReplace)] = `${replaceDay.toReplace} (desafectado)`;
+				if (!replaceDay.replaceWith && replaceDay.toReplace) {
+					let dissaffectedName = changeName?.startsWith(replaceDay.toReplace)
+						? changeName
+						: replaceDay.toReplace;
+					guard[guard.indexOf(dissaffectedName)] = `${dissaffectedName} (desafectado)`;
+				}
 			});
 		}
 		return guard;
