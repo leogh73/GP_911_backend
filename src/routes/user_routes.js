@@ -9,6 +9,7 @@ router.post('/login', validateForm.login, user.login);
 router.use(verifyAuthorization);
 
 router.post('/register', validateForm.register, user.register);
+router.post('/profile-edit', user.profileEdit);
 router.post('/change-password', validateForm.changePassword, user.changePassword);
 router.post('/forgot-password', validateForm.forgotPassword, user.forgotPassword);
 router.post('/renewtoken', user.renewToken);

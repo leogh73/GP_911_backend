@@ -37,7 +37,7 @@ const register = async (req, res) => {
 		ni,
 		hierarchy,
 		section,
-		guardId,
+		guardId: superior === 'Si' ? null : guardId.toString(),
 		email,
 		password: encryptedPassword,
 		superior: superior === 'Si' ? true : false,
@@ -119,8 +119,6 @@ const changePassword = async (req, res) => {
 		return res.send({ error: 'Bcrypt' });
 	}
 
-	console.log(newPassword);
-
 	try {
 		const result = await db.User.findOneAndUpdate(
 			{ _id: userId },
@@ -138,22 +136,104 @@ const changePassword = async (req, res) => {
 };
 
 const forgotPassword = async (req, res) => {
-	const { newPassword } = req.body;
-	const { model } = req.userData;
+	// const { newPassword } = req.body;
+	// const { model } = req.userData;
+	// let encryptedPassword;
+	// try {
+	// 	let salt = await bcrypt.genSalt(12);
+	// 	encryptedPassword = await bcrypt.hash(newPassword, salt);
+	// } catch (error) {
+	// 	return res.send({ error: 'Bcrypt' });
+	// }
+	// try {
+	// 	const result = await model.findOneAndUpdate({ password: encryptedPassword });
+	// 	return res.send(result);
+	// } catch (err) {
+	// 	return res.send({ error: 'error' });
+	// }
+};
 
-	let encryptedPassword;
+const profileEdit = async (req, res) => {
+	const {
+		userId,
+		username,
+		lastName,
+		firstName,
+		ni,
+		hierarchy,
+		section,
+		guardId,
+		superior,
+		email,
+		comment,
+	} = req.body;
+
+	if (!req.userData.admin) return res.send({ error: 'Not authorized' });
+
+	const translateWord = (w) => {
+		let newKey;
+		if (w === 'username') newKey = 'Nombre de usuario';
+		if (w === 'lastName') newKey = 'Apellid';
+		if (w === 'firstName') newKey = 'Nombre';
+		if (w === 'ni') newKey = 'NI';
+		if (w === 'hierarchy') newKey = 'Jerarquía';
+		if (w === 'section') newKey = 'Sección';
+		if (w === 'guardId') newKey = 'Guardia';
+		if (w === 'superior') newKey = 'Superior';
+		if (w === 'email') newKey = 'Correo electrónico';
+		if (w === 'Telefonía') newKey = 'Phoning';
+		if (w === 'Despacho') newKey = 'Dispatch';
+		if (w === 'Monitoreo') newKey = 'Monitoring';
+		if (w === 'Si') newKey = true;
+		if (w === 'No') newKey = false;
+		return newKey;
+	};
+
+	const generateChangelog = () => {
+		let changelogDetails = [];
+		for (const [key, value] of Object.entries(req.body)) {
+			if (!!value.new)
+				changelogDetails.push(`${translateWord(key)}: ${value.previous} --> ${value.new}`);
+		}
+
+		return changelogDetails;
+	};
+
+	let changelogItem = luxon.changelog(
+		generateChangelog(),
+		comment.length ? comment : null,
+		req.userData.fullName,
+	);
+
+	console.log(req.body);
+
 	try {
-		let salt = await bcrypt.genSalt(12);
-		encryptedPassword = await bcrypt.hash(newPassword, salt);
+		let result = await db.User.findOneAndUpdate(
+			{ _id: userId },
+			{
+				$push: {
+					changelog: changelogItem,
+				},
+				$set: {
+					username: username.new ?? username.previous,
+					firstName: firstName.new ?? firstName.previous,
+					lastName: lastName.new ?? lastName.previous,
+					ni: ni.new ?? ni.previous,
+					hierarchy: hierarchy.new ?? hierarchy.previous,
+					section: !!section.new ? translateWord(section.new) : translateWord(section.previous),
+					guardId: guardId.new ?? guardId.previous,
+					superior: !!superior.new
+						? translateWord(superior.new)
+						: translateWord(superior.previous),
+					email: email.new ?? email.previous,
+				},
+			},
+		);
+		res.send(result);
 	} catch (error) {
-		return res.send({ error: 'Bcrypt' });
-	}
-
-	try {
-		const result = await model.findOneAndUpdate({ password: encryptedPassword });
-		return res.send(result);
-	} catch (err) {
-		return res.send({ error: 'error' });
+		await db.storeLog('Edit user', { userId: req.userData.userId, body: req.body }, error);
+		console.log(error);
+		res.send({ error: error.toString() });
 	}
 };
 
@@ -189,4 +269,12 @@ const allUsers = async (req, res) => {
 	}
 };
 
-export default { register, login, changePassword, forgotPassword, renewToken, allUsers };
+export default {
+	register,
+	login,
+	changePassword,
+	forgotPassword,
+	profileEdit,
+	renewToken,
+	allUsers,
+};
