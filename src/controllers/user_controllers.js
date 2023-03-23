@@ -3,10 +3,36 @@ import jwt from 'jsonwebtoken';
 import db from '../modules/mongodb.js';
 import luxon from '../modules/luxon.js';
 
-const search = async (value) =>
-	value.includes('@')
-		? await db.User.findOne({ email: value })
-		: await db.User.findOne({ username: value });
+const encryptNewPassword = async (password, logAction, req) => {
+	let encryptedPass;
+	try {
+		let salt = await bcrypt.genSalt(12);
+		encryptedPass = await bcrypt.hash(password, salt);
+	} catch (error) {
+		await db.storeLog(logAction, { userId: req.userData.userId, body: req.body }, error);
+	}
+	return encryptedPass;
+};
+
+const storeNewPassword = async (userId, encryptedPassword, logAction, req) => {
+	let result;
+	let changelogItem = luxon.changelog(['Cambio de contraseña'], null, req.userData.fullName);
+	try {
+		result = await db.User.findOneAndUpdate(
+			{ _id: userId },
+			{
+				$push: {
+					changelog: changelogItem,
+				},
+				$set: { password: encryptedPassword },
+			},
+		);
+	} catch (error) {
+		await db.storeLog(logAction, { userId: req.userData.userId, body: req.body }, error);
+		console.log(error);
+	}
+	return { result, changelogItem };
+};
 
 const register = async (req, res) => {
 	const {
@@ -22,13 +48,9 @@ const register = async (req, res) => {
 		password,
 	} = req.body;
 
-	let encryptedPassword;
-	try {
-		let salt = await bcrypt.genSalt(12);
-		encryptedPassword = await bcrypt.hash(password, salt);
-	} catch (error) {
-		return res.send({ error: 'error' });
-	}
+	let encryptedPassword = await encryptNewPassword(password, 'Encrypt user password', req);
+
+	if (!encryptNewPassword) return res.send({ error: 'error' });
 
 	const newUser = new db.User({
 		username,
@@ -106,33 +128,17 @@ const changePassword = async (req, res) => {
 	const { newPassword } = req.body;
 	const { userId } = req.userData;
 
-	let encryptedPassword;
-	try {
-		let salt = await bcrypt.genSalt(12);
-		encryptedPassword = await bcrypt.hash(newPassword, salt);
-	} catch (error) {
-		await db.storeLog(
-			'Generate encrypted password',
-			{ userId: req.userData.userId, body: req.body },
-			error,
-		);
-		return res.send({ error: 'Bcrypt' });
-	}
+	const encryptedPassword = await encryptNewPassword(
+		newPassword,
+		'Generate new encrypted password',
+		req,
+	);
 
-	try {
-		const result = await db.User.findOneAndUpdate(
-			{ _id: userId },
-			{ $set: { password: encryptedPassword } },
-		);
-		return res.send(result);
-	} catch (error) {
-		await db.storeLog(
-			'Change DB password',
-			{ userId: req.userData.userId, body: req.body },
-			error,
-		);
-		return res.send({ error: 'Change password' });
-	}
+	if (!encryptedPassword) return res.send({ error: 'Bcrypt' });
+
+	const storePassword = await storeNewPassword(userId, encryptedPassword, 'Change password', req);
+
+	return res.send(storePassword ? storePassword.result : { error: 'Change Password' });
 };
 
 const forgotPassword = async (req, res) => {
@@ -195,7 +201,6 @@ const profileEdit = async (req, res) => {
 			if (!!value.new)
 				changelogDetails.push(`${translateWord(key)}: ${value.previous} --> ${value.new}`);
 		}
-
 		return changelogDetails;
 	};
 
@@ -204,8 +209,6 @@ const profileEdit = async (req, res) => {
 		comment.length ? comment : null,
 		req.userData.fullName,
 	);
-
-	console.log(req.body);
 
 	try {
 		let result = await db.User.findOneAndUpdate(
@@ -237,6 +240,31 @@ const profileEdit = async (req, res) => {
 	}
 };
 
+const modify = async (req, res) => {
+	const { itemId, status } = req.body;
+
+	if (!status) {
+		try {
+			let result = await db.User.findOneAndDelete({ _id: itemId });
+			return res.send({ result });
+		} catch (error) {
+			await db.storeLog('Remove user', { userId: req.userData.userId, body: req.body }, error);
+			console.log(error);
+			return res.send({ error: error.toString() });
+		}
+	}
+
+	if (!req.userData.admin) return res.send({ error: 'Not authorized' });
+
+	const encryptedPassword = await encryptNewPassword('12345', 'Reset password', req);
+
+	if (!encryptedPassword) return res.send({ error: 'Bcrypt' });
+
+	const result = await storeNewPassword(itemId, encryptedPassword, 'Reset Password', req);
+
+	return res.send(result ? result : { error: 'Reset Password' });
+};
+
 const renewToken = async (req, res) => {
 	const { usernameOrEmail, section, guardId, superior, userId } = req.userData;
 
@@ -255,7 +283,7 @@ const renewToken = async (req, res) => {
 };
 
 const allUsers = async (req, res) => {
-	if (!req.userData.superior && !req.userData.admin) return res.send({ error: 'User not valid' });
+	if (!req.userData.admin) return res.send({ error: 'User not valid' });
 
 	const { section } = req.body;
 
@@ -275,6 +303,7 @@ export default {
 	changePassword,
 	forgotPassword,
 	profileEdit,
+	modify,
 	renewToken,
 	allUsers,
 };

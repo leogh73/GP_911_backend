@@ -69,61 +69,38 @@ const newOne = async (req, res) => {
 const edit = async (req, res) => {
 	const { changeId, coverName, returnName, comment } = req.body;
 
-	let result;
-	let userName = req.userData.fullName;
+	const generateChangelog = () => {
+		let changelogDetails = [];
+		for (const [key, value] of Object.entries(req.body)) {
+			if (!!value.new)
+				changelogDetails.push(
+					`${key === 'coverName' ? 'Quien cubre' : 'Quien devuelve'}: ${value.previous} --> ${
+						value.new
+					}`,
+				);
+		}
+		return changelogDetails;
+	};
+
+	let changelogItem = luxon.changelog(
+		generateChangelog(),
+		comment.length ? comment : null,
+		req.userData.fullName,
+	);
 
 	try {
-		if (!coverName.new) {
-			let changelogItem = luxon.changelog(
-				[`Quien devuelve: '${returnName.previous}' --> '${returnName.new}'`],
-				comment.length ? comment : null,
-				userName,
-			);
-			result = await db.Change.findOneAndUpdate(
-				{ _id: changeId },
-				{
-					$push: {
-						changelog: changelogItem,
-					},
-					$set: { 'returnData.name': returnName.new },
+		let result = await db.Change.findOneAndUpdate(
+			{ _id: changeId },
+			{
+				$push: {
+					changelog: changelogItem,
 				},
-			);
-		}
-		if (!returnName.new) {
-			let changelogItem = luxon.changelog(
-				[`Quien cubre: '${coverName.previous}' --> '${coverName.new}'`],
-				comment.length ? comment : null,
-				userName,
-			);
-			result = await db.Change.findOneAndUpdate(
-				{ _id: changeId },
-				{
-					$push: {
-						changelog: changelogItem,
-					},
-					$set: { 'coverData.name': coverName.new },
+				$set: {
+					'coverData.name': coverName.new ?? coverName.previous,
+					'returnData.name': returnName.new ?? coverName.previous,
 				},
-			);
-		}
-		if (coverName.new && returnName.new) {
-			let changelogItem = luxon.changelog(
-				[
-					`Quien cubre: '${coverName.previous}' --> '${coverName.new}'`,
-					`Quien devuelve: '${returnName.previous}' --> '${returnName.new}'`,
-				],
-				comment.length ? comment : null,
-				userName,
-			);
-			result = await db.Change.findOneAndUpdate(
-				{ _id: changeId },
-				{
-					$push: {
-						changelog: changelogItem,
-					},
-					$set: { 'coverData.name': coverName.new, 'returnData.name': returnName.new },
-				},
-			);
-		}
+			},
+		);
 		res.send(result);
 	} catch (error) {
 		await db.storeLog('Edit change', { userId: req.userData.userId, body: req.body }, error);
