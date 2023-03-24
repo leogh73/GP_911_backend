@@ -68,16 +68,13 @@ const register = async (req, res) => {
 	});
 
 	try {
-		await newUser.save();
+		let result = await newUser.save();
+		res.send({ result });
 	} catch (error) {
 		await db.storeLog('Store new user', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
 		return res.send({ userId: null });
 	}
-
-	res.send({
-		userId: newUser.id,
-	});
 };
 
 const login = async (req, res) => {
@@ -138,7 +135,7 @@ const changePassword = async (req, res) => {
 
 	const storePassword = await storeNewPassword(userId, encryptedPassword, 'Change password', req);
 
-	return res.send(storePassword ? storePassword.result : { error: 'Change Password' });
+	return res.send(storePassword.result ? storePassword : { error: 'Change Password' });
 };
 
 const forgotPassword = async (req, res) => {
@@ -260,9 +257,9 @@ const modify = async (req, res) => {
 
 	if (!encryptedPassword) return res.send({ error: 'Bcrypt' });
 
-	const result = await storeNewPassword(itemId, encryptedPassword, 'Reset Password', req);
+	const storePassword = await storeNewPassword(itemId, encryptedPassword, 'Reset Password', req);
 
-	return res.send(result ? result : { error: 'Reset Password' });
+	return res.send(storePassword.result ? storePassword : { error: 'Reset Password' });
 };
 
 const renewToken = async (req, res) => {
