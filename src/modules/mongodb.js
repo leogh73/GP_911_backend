@@ -96,10 +96,15 @@ const logSchema = new Schema({
 	time: { type: String, required: true },
 });
 
+const oauth2Schema = new Schema({
+	tokens: { type: Object, required: true },
+});
+
 const User = mongoose.model('user', userSchema);
 const Change = mongoose.model('change', changeSchema);
 const Request = mongoose.model('request', requestSchema);
 const Affected = mongoose.model('affected', affectedSchema);
+const Oauth2 = mongoose.model('oauth', oauth2Schema);
 const Log = mongoose.model('log', logSchema);
 
 const storeLog = async (actionName, actionDetail, errorMessage) => {
@@ -113,4 +118,4 @@ const storeLog = async (actionName, actionDetail, errorMessage) => {
 	}).save();
 };
 
-export default { User, Change, Request, Affected, storeLog };
+export default { User, Change, Request, Affected, Oauth2, storeLog };

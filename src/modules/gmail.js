@@ -1,31 +1,33 @@
 import nodeMailer from 'nodemailer';
-import vars from '../modules/crypto-js.js';
+import vars from './crypto-js.js';
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
-import db from '../modules/mongodb.js';
+import db from './mongodb.js';
 import { google } from 'googleapis';
 
-const { client_secret, client_id, redirect_uris } = vars.OAUTH2_CREDENTIALS;
-const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
-const dbOauth2 = (await db.OAuth2.find({}))[0];
+const gmailInstance = async () => {
+	const { client_secret, client_id, redirect_uris } = vars.OAUTH2_CREDENTIALS;
+	const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+	const dbOauth2 = (await db.Oauth2.find({}))[0];
 
-let oAuth2 = dbOauth2.toObject();
-oAuth2Client.on('tokens', async (tokens) => {
-	if (tokens.refresh_token) {
-		dbOauth2.tokens.refresh_token = tokens.refresh_token;
-		await dbOauth2.save();
-		oAuth2.tokens.refresh_token = tokens.refresh_token;
-	}
-});
+	let oAuth2 = dbOauth2.toObject();
+	oAuth2Client.on('tokens', async (tokens) => {
+		if (tokens.refresh_token) {
+			dbOauth2.tokens.refresh_token = tokens.refresh_token;
+			await dbOauth2.save();
+			oAuth2.tokens.refresh_token = tokens.refresh_token;
+		}
+	});
 
-oAuth2Client.setCredentials(oAuth2.tokens);
-
-const gmail = google.gmail({ version: 'v1', auth: oAuth2Client });
+	oAuth2Client.setCredentials(oAuth2.tokens);
+	return google.gmail({ version: 'v1', auth: oAuth2Client });
+};
 
 const sendMail = async (emails, subject, html) => {
 	const options = {
+		from: 'Cambios de Guardia 911<guardias911sfe@gmail.com>',
 		to: 'leocuevas73@gmail.com',
 		cc: 'cc1@example.com, cc2@example.com',
-		replyTo: 'cambios911sfe@gmail.com',
+		// replyTo: 'cambios911sfe@gmail.com',
 		subject: 'Confirme cambios en su perfil 🚀',
 		text: 'This email is sent from the command line',
 		html: `<p>🙋🏻‍♀️  &mdash; This is a <b>test email</b> from <a href="https://digitalinspiration.com">Digital Inspiration</a>.</p>`,
@@ -47,6 +49,7 @@ const sendMail = async (emails, subject, html) => {
 	};
 
 	const rawMessage = await createMail(options);
+	const gmail = await gmailInstance();
 
 	const { data: { id } = {} } = await gmail.users.messages.send({
 		userId: 'me',

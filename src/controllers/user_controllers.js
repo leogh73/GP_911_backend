@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import db from '../modules/mongodb.js';
 import luxon from '../modules/luxon.js';
+import sendMail from '../modules/gmail.js';
 
 const encryptNewPassword = async (password, logAction, req) => {
 	let encryptedPass;
@@ -14,9 +15,13 @@ const encryptNewPassword = async (password, logAction, req) => {
 	return encryptedPass;
 };
 
-const storeNewPassword = async (userId, encryptedPassword, logAction, req) => {
+const storeNewPassword = async (userId, encryptedPassword, logAction, reset, req) => {
 	let result;
-	let changelogItem = luxon.changelog(['Cambio de contraseña'], null, req.userData.fullName);
+	let changelogItem = luxon.changelog(
+		[`${reset ? 'Restablecimiento' : 'Cambio'} de contraseña`],
+		null,
+		req.userData.fullName,
+	);
 	try {
 		result = await db.User.findOneAndUpdate(
 			{ _id: userId },
@@ -133,7 +138,13 @@ const changePassword = async (req, res) => {
 
 	if (!encryptedPassword) return res.send({ error: 'Bcrypt' });
 
-	const storePassword = await storeNewPassword(userId, encryptedPassword, 'Change password', req);
+	const storePassword = await storeNewPassword(
+		userId,
+		encryptedPassword,
+		'Change password',
+		false,
+		req,
+	);
 
 	return res.send(storePassword.result ? storePassword : { error: 'Change Password' });
 };
@@ -157,83 +168,141 @@ const forgotPassword = async (req, res) => {
 };
 
 const profileEdit = async (req, res) => {
-	const {
-		userId,
-		username,
-		lastName,
-		firstName,
-		ni,
-		hierarchy,
-		section,
-		guardId,
-		superior,
-		email,
-		comment,
-	} = req.body;
+	const { changeToken } = req.body;
 
-	if (!req.userData.admin) return res.send({ error: 'Not authorized' });
+	if (!changeToken) {
+		const {
+			userId,
+			username,
+			lastName,
+			firstName,
+			ni,
+			hierarchy,
+			section,
+			guardId,
+			superior,
+			email,
+			comment,
+		} = req.body;
 
-	const translateWord = (w) => {
-		let newKey;
-		if (w === 'username') newKey = 'Nombre de usuario';
-		if (w === 'lastName') newKey = 'Apellid';
-		if (w === 'firstName') newKey = 'Nombre';
-		if (w === 'ni') newKey = 'NI';
-		if (w === 'hierarchy') newKey = 'Jerarquía';
-		if (w === 'section') newKey = 'Sección';
-		if (w === 'guardId') newKey = 'Guardia';
-		if (w === 'superior') newKey = 'Superior';
-		if (w === 'email') newKey = 'Correo electrónico';
-		if (w === 'Telefonía') newKey = 'Phoning';
-		if (w === 'Despacho') newKey = 'Dispatch';
-		if (w === 'Monitoreo') newKey = 'Monitoring';
-		if (w === 'Si') newKey = true;
-		if (w === 'No') newKey = false;
-		return newKey;
-	};
-
-	const generateChangelog = () => {
-		let changelogDetails = [];
-		for (const [key, value] of Object.entries(req.body)) {
-			if (!!value.new)
-				changelogDetails.push(`${translateWord(key)}: ${value.previous} --> ${value.new}`);
+		let token;
+		try {
+			token = jwt.sign(
+				{
+					userId,
+					username,
+					lastName,
+					firstName,
+					ni,
+					hierarchy,
+					section,
+					guardId,
+					superior,
+					email,
+					comment,
+				},
+				'codigo_ultrasecreto_no_compartir',
+				{ expiresIn: '1h' },
+			);
+			let url = `http://localhost:3000/profile/edit-confirm/token=${token}`;
+			console.log(url);
+			let mailId = await sendMail();
+			res.send({ _id: mailId });
+		} catch (error) {
+			await db.storeLog('Generate token', { userId: userId, body: req.body }, error);
+			console.log(error);
+			return res.send({ error: error.toString() });
 		}
-		return changelogDetails;
-	};
+	}
 
-	let changelogItem = luxon.changelog(
-		generateChangelog(),
-		comment.length ? comment : null,
-		req.userData.fullName,
-	);
+	if (changeToken) {
+		let tokenData;
+		try {
+			tokenData = jwt.verify(changeToken, 'codigo_ultrasecreto_no_compartir');
+		} catch (error) {
+			await db.storeLog('Decode token', { userId: req.userData.userId, body: req.body }, error);
+			console.log(error);
+			return res.send({ error: error.toString() });
+		}
 
-	try {
-		let result = await db.User.findOneAndUpdate(
-			{ _id: userId },
-			{
-				$push: {
-					changelog: changelogItem,
-				},
-				$set: {
-					username: username.new ?? username.previous,
-					firstName: firstName.new ?? firstName.previous,
-					lastName: lastName.new ?? lastName.previous,
-					ni: ni.new ?? ni.previous,
-					hierarchy: hierarchy.new ?? hierarchy.previous,
-					section: !!section.new ? translateWord(section.new) : translateWord(section.previous),
-					guardId: guardId.new ?? guardId.previous,
-					superior: !!superior.new
-						? translateWord(superior.new)
-						: translateWord(superior.previous),
-					email: email.new ?? email.previous,
-				},
-			},
+		if (!tokenData) return res.send({ error: 'error' });
+
+		const {
+			userId,
+			username,
+			lastName,
+			firstName,
+			ni,
+			hierarchy,
+			section,
+			guardId,
+			superior,
+			email,
+			comment,
+		} = tokenData;
+
+		const translateWord = (w) => {
+			let newKey;
+			if (w === 'username') newKey = 'Nombre de usuario';
+			if (w === 'lastName') newKey = 'Apellido';
+			if (w === 'firstName') newKey = 'Nombre';
+			if (w === 'ni') newKey = 'NI';
+			if (w === 'hierarchy') newKey = 'Jerarquía';
+			if (w === 'section') newKey = 'Sección';
+			if (w === 'guardId') newKey = 'Guardia';
+			if (w === 'superior') newKey = 'Superior';
+			if (w === 'email') newKey = 'Correo electrónico';
+			if (w === 'Telefonía') newKey = 'Phoning';
+			if (w === 'Despacho') newKey = 'Dispatch';
+			if (w === 'Monitoreo') newKey = 'Monitoring';
+			if (w === 'Si') newKey = true;
+			if (w === 'No') newKey = false;
+			return newKey;
+		};
+
+		const generateChangelog = () => {
+			let changelogDetails = [];
+			for (const [key, value] of Object.entries(req.body)) {
+				if (!!value.new)
+					changelogDetails.push(`${translateWord(key)}: ${value.previous} --> ${value.new}`);
+			}
+			return changelogDetails;
+		};
+
+		let changelogItem = luxon.changelog(
+			generateChangelog(),
+			comment.length ? comment : null,
+			req.userData.fullName,
 		);
-		res.send(result);
-	} catch (error) {
-		await db.storeLog('Edit user', { userId: req.userData.userId, body: req.body }, error);
-		console.log(error);
-		res.send({ error: error.toString() });
+
+		try {
+			let result = await db.User.findOneAndUpdate(
+				{ _id: userId },
+				{
+					$push: {
+						changelog: changelogItem,
+					},
+					$set: {
+						username: username.new ?? username.previous,
+						firstName: firstName.new ?? firstName.previous,
+						lastName: lastName.new ?? lastName.previous,
+						ni: ni.new ?? ni.previous,
+						hierarchy: hierarchy.new ?? hierarchy.previous,
+						section: !!section.new ? translateWord(section.new) : translateWord(section.previous),
+						guardId: guardId.new ?? guardId.previous,
+						superior: !!superior.new
+							? translateWord(superior.new)
+							: translateWord(superior.previous),
+						email: email.new ?? email.previous,
+					},
+				},
+			);
+			res.send(result);
+		} catch (error) {
+			await db.storeLog('Edit user', { userId: req.userData.userId, body: req.body }, error);
+			console.log(error);
+			res.send({ error: error.toString() });
+		}
 	}
 };
 
@@ -257,7 +326,13 @@ const modify = async (req, res) => {
 
 	if (!encryptedPassword) return res.send({ error: 'Bcrypt' });
 
-	const storePassword = await storeNewPassword(itemId, encryptedPassword, 'Reset Password', req);
+	const storePassword = await storeNewPassword(
+		itemId,
+		encryptedPassword,
+		'Reset Password',
+		true,
+		req,
+	);
 
 	return res.send(storePassword.result ? storePassword : { error: 'Reset Password' });
 };
