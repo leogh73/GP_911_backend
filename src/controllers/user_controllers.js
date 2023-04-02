@@ -102,7 +102,7 @@ const login = async (req, res) => {
 	try {
 		token = jwt.sign(
 			{ _id, fullName, section, guardId, superior, admin },
-			'codigo_ultrasecreto_no_compartir',
+			process.env.SERVICE_ENCRYPTION_KEY,
 			{ expiresIn: '1h' },
 		);
 	} catch (error) {
@@ -128,7 +128,7 @@ const login = async (req, res) => {
 
 const changePassword = async (req, res) => {
 	const { newPassword } = req.body;
-	const { userId } = req.userData;
+	const userId = req.userData.userData ?? userId.req.body.userId;
 
 	const encryptedPassword = await encryptNewPassword(
 		newPassword,
@@ -150,21 +150,39 @@ const changePassword = async (req, res) => {
 };
 
 const forgotPassword = async (req, res) => {
-	// const { newPassword } = req.body;
-	// const { model } = req.userData;
-	// let encryptedPassword;
-	// try {
-	// 	let salt = await bcrypt.genSalt(12);
-	// 	encryptedPassword = await bcrypt.hash(newPassword, salt);
-	// } catch (error) {
-	// 	return res.send({ error: 'Bcrypt' });
-	// }
-	// try {
-	// 	const result = await model.findOneAndUpdate({ password: encryptedPassword });
-	// 	return res.send(result);
-	// } catch (err) {
-	// 	return res.send({ error: 'error' });
-	// }
+	const { email } = req.body;
+
+	if (email) {
+		const user = await db.User.find({ email: email });
+		if (!user[0]._id) return res.send({ error: 'User not found' });
+
+		try {
+			let token = jwt.sign({ userId: user[0]._id }, process.env.SERVICE_ENCRYPTION_KEY, {
+				expiresIn: '1h',
+			});
+			let url = `http://localhost:3000/new-password/token=${token}`;
+			console.log(url);
+			return res.send({ _id: user[0]._id });
+		} catch (error) {
+			await db.storeLog(
+				'Generate recover password token',
+				{ userId: !user[0]._id, body: req.body },
+				error,
+			);
+			return res.send({ error: 'error' });
+		}
+	}
+
+	if (!email) {
+		const { token } = req.body;
+
+		const tokenData = jwt.verify(token, process.env.SERVICE_ENCRYPTION_KEY);
+		const { userId } = tokenData;
+
+		if (!userId) return res.send({ error: 'Token not valid' });
+
+		res.send({ _id: userId });
+	}
 };
 
 const profileEdit = async (req, res) => {
@@ -201,13 +219,13 @@ const profileEdit = async (req, res) => {
 					email,
 					comment,
 				},
-				'codigo_ultrasecreto_no_compartir',
+				process.env.SERVICE_ENCRYPTION_KEY,
 				{ expiresIn: '1h' },
 			);
 			let url = `http://localhost:3000/profile/edit-confirm/token=${token}`;
 			console.log(url);
-			let mailId = await sendMail();
-			res.send({ _id: mailId });
+			// let mailId = await sendMail();
+			res.send({ _id: url });
 		} catch (error) {
 			await db.storeLog('Generate token', { userId: userId, body: req.body }, error);
 			console.log(error);
@@ -218,7 +236,7 @@ const profileEdit = async (req, res) => {
 	if (changeToken) {
 		let tokenData;
 		try {
-			tokenData = jwt.verify(changeToken, 'codigo_ultrasecreto_no_compartir');
+			tokenData = jwt.verify(changeToken, process.env.SERVICE_ENCRYPTION_KEY);
 		} catch (error) {
 			await db.storeLog('Decode token', { userId: req.userData.userId, body: req.body }, error);
 			console.log(error);
@@ -297,7 +315,8 @@ const profileEdit = async (req, res) => {
 					},
 				},
 			);
-			res.send(result);
+			let updatedUser = await db.User.findById(result._id);
+			res.send({ result: updatedUser });
 		} catch (error) {
 			await db.storeLog('Edit user', { userId: req.userData.userId, body: req.body }, error);
 			console.log(error);
@@ -344,7 +363,7 @@ const renewToken = async (req, res) => {
 	try {
 		newToken = sign(
 			{ usernameOrEmail, section, guardId, superior, userId },
-			'codigo_ultrasecreto_no_compartir',
+			process.env.SERVICE_ENCRYPTION_KEY,
 			{ expiresIn: '1h' },
 		);
 	} catch (error) {
