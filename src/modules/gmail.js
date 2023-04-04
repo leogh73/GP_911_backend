@@ -1,4 +1,3 @@
-import nodeMailer from 'nodemailer';
 import vars from './crypto-js.js';
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 import db from './mongodb.js';

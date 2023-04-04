@@ -2,14 +2,21 @@ import express, { json } from 'express';
 const app = express();
 import cors from 'cors';
 import dotenv from 'dotenv/config';
-import './src/modules/mongodb.js';
+import cookieParser from 'cookie-parser';
 
 app.use(express.json());
 app.use(cors({ origin: true }));
+app.use(cookieParser());
 
 import userRoutes from './src/routes/user_routes.js';
 import spreadsheetRoutes from './src/routes/spreadsheet_routes.js';
 import itemRoutes from './src/routes/item_routes.js';
+
+// app.use((req, res, next) => {
+// 	const allowedMethods = ['GET', 'POST'];
+// 	if (!allowedMethods.includes(req.method)) res.status(405).send('Not allowed.');
+// 	next();
+// });
 
 app.use('/api/user', userRoutes);
 app.use('/api/spreadsheet', spreadsheetRoutes);

@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import db from '../modules/mongodb.js';
 import luxon from '../modules/luxon.js';
+import { serialize } from 'cookie';
 import sendMail from '../modules/gmail.js';
 
 const encryptNewPassword = async (password, logAction, req) => {
@@ -112,8 +113,15 @@ const login = async (req, res) => {
 		return res.send({ error: 'error' });
 	}
 
+	res.cookie('token', token, {
+		httpOnly: true,
+		secure: false,
+		sameSite: 'strict',
+		maxAge: 60 * 60 * 24 * 30,
+		path: '/',
+	});
+
 	res.send({
-		token,
 		userId: _id,
 		username,
 		firstName,
