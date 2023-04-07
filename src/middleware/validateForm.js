@@ -26,8 +26,6 @@ const register = async (req, res, next) => {
 const login = async (req, res, next) => {
 	const { usernameOrEmail, password } = req.body;
 
-	console.log(req.body);
-
 	let storedData;
 	try {
 		storedData = usernameOrEmail.includes('@')

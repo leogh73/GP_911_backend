@@ -5,18 +5,10 @@ import { google } from 'googleapis';
 
 const { client_secret, client_id, redirect_uris } = vars.OAUTH2_CREDENTIALS;
 const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+
 const dbOauth2 = (await db.Oauth2.find({}))[0];
+oAuth2Client.setCredentials(dbOauth2.tokens);
 
-let oAuth2 = dbOauth2.toObject();
-oAuth2Client.on('tokens', async (tokens) => {
-	if (tokens.refresh_token) {
-		dbOauth2.tokens.refresh_token = tokens.refresh_token;
-		await dbOauth2.save();
-		oAuth2.tokens.refresh_token = tokens.refresh_token;
-	}
-});
-
-oAuth2Client.setCredentials(oAuth2.tokens);
 const gmail = google.gmail({ version: 'v1', auth: oAuth2Client });
 
 const sendMail = async (emails, subject, html) => {
@@ -58,3 +50,26 @@ const sendMail = async (emails, subject, html) => {
 };
 
 export default sendMail;
+
+// let oAuth2 = dbOauth2.toObject();
+// oAuth2Client.on('tokens', async (tokens) => {
+// 	if (tokens.refresh_token) {
+// 		dbOauth2.tokens.refresh_token = tokens.refresh_token;
+// 		console.log('token refresh');
+// 		await dbOauth2.save();
+// 		oAuth2.tokens.refresh_token = tokens.refresh_token;
+// 	}
+// });
+
+// const authUrl = oAuth2Client.generateAuthUrl({
+// 	access_type: 'offline',
+// 	prompt: 'consent',
+// 	scope: ['https://www.googleapis.com/auth/gmail.send'],
+// });
+// console.log(authUrl);
+// const tokens = (
+// 	await oAuth2Client.getToken(
+// 		'4/0AVHEtk5zYhqLsefq_n9N7-5z3iQbY3GFletEhsZi3AKZMKO0XR2Tdk2bx7AcQEBGEitmcQ',
+// 	)
+// ).data;
+// console.log(tokens);

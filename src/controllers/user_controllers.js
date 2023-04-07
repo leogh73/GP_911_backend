@@ -2,7 +2,6 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import db from '../modules/mongodb.js';
 import luxon from '../modules/luxon.js';
-import { serialize } from 'cookie';
 import sendMail from '../modules/gmail.js';
 
 const encryptNewPassword = async (password, logAction, req) => {
@@ -101,27 +100,33 @@ const login = async (req, res) => {
 	} = req.body.userData;
 	let fullName = `${lastName} ${firstName}`;
 
-	let token;
+	let accesssToken;
+	let refreshToken;
 	try {
-		token = jwt.sign(
+		accesssToken = jwt.sign(
 			{ _id, fullName, section, guardId, superior, admin },
 			process.env.SERVICE_ENCRYPTION_KEY,
-			{ expiresIn: '1h' },
+			{
+				expiresIn: '1m',
+			},
 		);
+		refreshToken = jwt.sign({ _id }, process.env.SERVICE_ENCRYPTION_KEY, {
+			expiresIn: '1h',
+		});
 	} catch (error) {
 		await db.storeLog('Generate token', { userId: _id, body: req.body }, error);
 		return res.send({ error: 'error' });
 	}
 
-	res.cookie('token', token, {
+	res.cookie('token', refreshToken, {
 		httpOnly: true,
-		secure: false,
+		secure: true,
 		sameSite: 'strict',
-		maxAge: 60 * 60 * 24 * 30,
-		path: '/',
+		maxAge: 7 * 24 * 60 * 60 * 1000,
 	});
 
 	res.send({
+		token: accesssToken,
 		userId: _id,
 		username,
 		firstName,
@@ -244,8 +249,8 @@ const profileEdit = async (req, res) => {
 				);
 				let url = `http://localhost:3000/profile/edit-confirm/token=${token}`;
 				console.log(url);
-				// let mailId = await sendMail();
-				return res.send({ _id: url });
+				let mailId = await sendMail();
+				return res.send({ _id: mailId });
 			} catch (error) {
 				await db.storeLog('Generate token', { userId: userId, body: req.body }, error);
 				console.log(error);
@@ -387,23 +392,6 @@ const modify = async (req, res) => {
 	return res.send(storePassword.result ? storePassword : { error: 'Reset Password' });
 };
 
-const renewToken = async (req, res) => {
-	const { usernameOrEmail, section, guardId, superior, userId } = req.userData;
-
-	let newToken;
-	try {
-		newToken = sign(
-			{ usernameOrEmail, section, guardId, superior, userId },
-			process.env.SERVICE_ENCRYPTION_KEY,
-			{ expiresIn: '1h' },
-		);
-	} catch (error) {
-		return res.send({ error: 'error' });
-	}
-
-	res.send({ token: newToken });
-};
-
 const allUsers = async (req, res) => {
 	if (!req.userData.admin) return res.send({ error: 'User not valid' });
 
@@ -430,6 +418,5 @@ export default {
 	forgotPassword,
 	profileEdit,
 	modify,
-	renewToken,
 	allUsers,
 };

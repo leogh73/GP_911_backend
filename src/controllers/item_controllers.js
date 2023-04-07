@@ -45,7 +45,6 @@ const newOne = async (req, res) => {
 	}
 	if (type === 'affected') {
 		const { name, affectedData, disaffectedData, bookPage, comment } = req.body;
-		console.log(req.body);
 		newElement = db.Affected({
 			section: req.userData.section,
 			name,
@@ -203,4 +202,4 @@ const sortList = (type, itemsList, schedule) => {
 	return finalList;
 };
 
-export default { all, newOne, edit, modify, filterList, sortList };
+export default { all, newOne, edit, modify };
