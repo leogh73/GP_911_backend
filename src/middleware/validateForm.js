@@ -49,7 +49,7 @@ const login = async (req, res, next) => {
 
 	if (!validationPassword) return res.send({ error: 'password' });
 
-	req.body.userData = storedData;
+	req.userData = storedData;
 
 	next();
 };
@@ -81,11 +81,11 @@ const changePassword = async (req, res, next) => {
 };
 
 const forgotPassword = async (req, res, next) => {
-	const { usernameOrEmail, password } = req.body;
+	const { email } = req.body;
 
 	let storedData;
 	try {
-		storedData = await search(usernameOrEmail);
+		storedData = await search(email);
 	} catch (error) {
 		return res.send({ error: 'error' });
 	}
@@ -103,7 +103,7 @@ const forgotPassword = async (req, res, next) => {
 
 	const { _id, firstName, lastName, section, guardId, superior } = storedData.toObject();
 
-	req.body.userData = { userId: _id, firstName, lastName, section, guardId, superior };
+	req.userData = { userId: _id, firstName, lastName, section, guardId, superior };
 
 	next();
 };

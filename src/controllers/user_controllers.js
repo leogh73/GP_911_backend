@@ -38,7 +38,7 @@ const storeNewPassword = async (userId, encryptedPassword, logAction, reset, req
 		await db.storeLog(logAction, { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
 	}
-	return { result, changelogItem };
+	return { result, changelogItem, newAccessToken: req.newAccessToken };
 };
 
 const register = async (req, res) => {
@@ -76,7 +76,7 @@ const register = async (req, res) => {
 
 	try {
 		let result = await newUser.save();
-		res.send({ result });
+		return res.send({ result, newAccessToken: req.newAccessToken });
 	} catch (error) {
 		await db.storeLog('Store new user', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
@@ -97,7 +97,7 @@ const login = async (req, res) => {
 		email,
 		superior,
 		admin,
-	} = req.body.userData;
+	} = req.userData;
 	let fullName = `${lastName} ${firstName}`;
 
 	let accesssToken;
@@ -110,7 +110,7 @@ const login = async (req, res) => {
 				expiresIn: '1m',
 			},
 		);
-		refreshToken = jwt.sign({ _id }, process.env.SERVICE_ENCRYPTION_KEY, {
+		refreshToken = jwt.sign({ userId: _id }, process.env.SERVICE_ENCRYPTION_KEY, {
 			expiresIn: '1h',
 		});
 	} catch (error) {
@@ -177,7 +177,8 @@ const forgotPassword = async (req, res) => {
 			});
 			let url = `http://localhost:3000/new-password/token=${token}`;
 			console.log(url);
-			return res.send({ _id });
+			let emailId = await sendMail();
+			return res.send({ _id: emailId });
 		} catch (error) {
 			await db.storeLog('Generate recover password token', { userId: _id, body: req.body }, error);
 			return res.send({ error: 'error' });
@@ -250,7 +251,7 @@ const profileEdit = async (req, res) => {
 				let url = `http://localhost:3000/profile/edit-confirm/token=${token}`;
 				console.log(url);
 				let mailId = await sendMail();
-				return res.send({ _id: mailId });
+				return res.send({ _id: mailId, newAccessToken: req.newAccessToken });
 			} catch (error) {
 				await db.storeLog('Generate token', { userId: userId, body: req.body }, error);
 				console.log(error);
@@ -322,6 +323,7 @@ const profileEdit = async (req, res) => {
 	);
 
 	let userObject = {
+		_id: userId,
 		username: username.new ?? username.previous,
 		firstName: firstName.new ?? firstName.previous,
 		lastName: lastName.new ?? lastName.previous,
@@ -353,7 +355,7 @@ const profileEdit = async (req, res) => {
 				},
 			},
 		);
-		res.send({ result: userObject });
+		res.send({ result: userObject, newAccessToken: req.newAccessToken });
 	} catch (error) {
 		await db.storeLog('Edit user', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
@@ -403,12 +405,50 @@ const allUsers = async (req, res) => {
 			user.userId = u._id;
 			return user;
 		});
-		return res.send({ allUsers });
+		return res.send({ allUsers, newAccessToken: req.newAccessToken });
 	} catch (error) {
 		await db.storeLog('Get all users', { userId: req.userData.userId }, error);
 		console.log(error);
 		return res.send({ error: error.toString() });
 	}
+};
+
+const refreshSession = (req, res) => {
+	const {
+		userId,
+		username,
+		firstName,
+		lastName,
+		ni,
+		hierarchy,
+		section,
+		guardId,
+		email,
+		superior,
+		admin,
+	} = req.userData;
+
+	res.send({
+		token: req.headers?.authorization?.split(' ')[1] ?? req.newAccessToken,
+		userId,
+		username,
+		firstName,
+		lastName,
+		ni,
+		hierarchy,
+		section,
+		guardId,
+		email,
+		superior,
+		admin,
+	});
+};
+
+const logout = (req, res) => {
+	const cookies = req.cookies;
+	if (!cookies?.token) return res.sendStatus(204);
+	res.clearCookie('token', { httpOnly: true, secure: true, sameSite: 'strict' });
+	res.json({ message: 'Cookie cleared correctly' });
 };
 
 export default {
@@ -419,4 +459,6 @@ export default {
 	profileEdit,
 	modify,
 	allUsers,
+	refreshSession,
+	logout,
 };

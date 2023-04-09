@@ -11,7 +11,7 @@ const all = async (req, res) => {
 		if (type === 'affected') allItems = await db.Affected.find({ section: req.userData.section });
 		let filteredItems = filterList(type, allItems);
 		let sortedItems = sortList(type, filteredItems, false);
-		res.send(sortedItems);
+		res.send({ result: sortedItems, newAccessToken: req.newAccessToken });
 	} catch (error) {
 		await db.storeLog('Get all changes', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);

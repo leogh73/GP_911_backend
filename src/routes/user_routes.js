@@ -15,5 +15,7 @@ router.post('/change-password', validateForm.changePassword, user.changePassword
 router.post('/profile-edit', user.profileEdit);
 router.post('/modify', user.modify);
 router.post('/allusers', user.allUsers);
+router.get('/refresh-session', user.refreshSession);
+router.get('/logout', user.logout);
 
 export default router;
