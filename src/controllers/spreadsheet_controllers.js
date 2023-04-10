@@ -5,7 +5,7 @@ import luxon from '../modules/luxon.js';
 const scheduleMonth = async (req, res) => {
 	try {
 		const { splittedSchedule, fullSchedule } = await generateSchedule(req.userData, null);
-		return res.send({ splittedSchedule, fullSchedule });
+		return res.send({ splittedSchedule, fullSchedule, newAccessToken: req.newAccessToken });
 	} catch (error) {
 		await db.storeLog('Schedule creation', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
@@ -16,7 +16,7 @@ const scheduleMonth = async (req, res) => {
 const scheduleSearch = async (req, res) => {
 	try {
 		const { splittedSchedule, fullSchedule } = await generateSchedule(req.userData, req.body.date);
-		return res.send({ splittedSchedule, fullSchedule });
+		return res.send({ splittedSchedule, fullSchedule, newAccessToken: req.newAccessToken });
 	} catch (error) {
 		await db.storeLog('Schedule search', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
@@ -28,43 +28,11 @@ const allUsers = async (req, res) => {
 	try {
 		const consult = await consultSpreadsheet(true, null, null, 'Personal!A2:F7', 'COLUMNS');
 		const userList = consult.flat().sort();
-		res.send(userList);
+		res.send({ items: userList, newAccessToken: req.newAccessToken });
 	} catch (error) {
 		await db.storeLog('Get all users', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
 		res.send({ error: 'An error ocurred.' });
-	}
-};
-
-const guardDay = async (req, res) => {
-	const { date } = req.body;
-	try {
-		const consult = await consultSpreadsheet(
-			false,
-			'Buscador!B3',
-			date,
-			'Buscador!C2:F11',
-			'COLUMNS',
-		);
-		let dayGuard = [
-			{
-				shift: '6 a 14 hs.',
-				guardId: consult[0][1],
-			},
-			{
-				shift: '14 a 22 hs.',
-				guardId: consult[1][1],
-			},
-			{
-				shift: '22 a 6 hs.',
-				guardId: consult[2][1],
-			},
-		];
-		res.send(dayGuard);
-	} catch (error) {
-		await db.storeLog('Get day guards', { userId: req.userData.userId, body: req.body }, error);
-		console.log(error);
-		res.send({ mensaje: 'No se pudo realizar la consulta.' });
 	}
 };
 
@@ -354,5 +322,4 @@ export default {
 	scheduleMonth,
 	scheduleSearch,
 	allUsers,
-	guardDay,
 };

@@ -57,7 +57,7 @@ const newOne = async (req, res) => {
 
 	try {
 		let result = await newElement.save();
-		res.send(result);
+		res.send({ result, newAccessToken: req.newAccessToken });
 	} catch (error) {
 		await db.storeLog('Create new item', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);

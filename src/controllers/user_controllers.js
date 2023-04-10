@@ -104,7 +104,20 @@ const login = async (req, res) => {
 	let refreshToken;
 	try {
 		accesssToken = jwt.sign(
-			{ _id, fullName, section, guardId, superior, admin },
+			{
+				_id,
+				username,
+				fullName,
+				firstName,
+				lastName,
+				ni,
+				hierarchy,
+				section,
+				guardId,
+				email,
+				superior,
+				admin,
+			},
 			process.env.SERVICE_ENCRYPTION_KEY,
 			{
 				expiresIn: '1m',
@@ -178,7 +191,7 @@ const forgotPassword = async (req, res) => {
 			let url = `http://localhost:3000/new-password/token=${token}`;
 			console.log(url);
 			let emailId = await sendMail();
-			return res.send({ _id: emailId });
+			return res.send({ _id: emailId, newAccessToken: req.newAccessToken });
 		} catch (error) {
 			await db.storeLog('Generate recover password token', { userId: _id, body: req.body }, error);
 			return res.send({ error: 'error' });
@@ -369,7 +382,7 @@ const modify = async (req, res) => {
 	if (!status) {
 		try {
 			let result = await db.User.findOneAndDelete({ _id: itemId });
-			return res.send({ result });
+			return res.send({ result, newAccessToken: req.newAccessToken });
 		} catch (error) {
 			await db.storeLog('Remove user', { userId: req.userData.userId, body: req.body }, error);
 			console.log(error);
