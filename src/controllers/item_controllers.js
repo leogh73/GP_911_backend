@@ -47,6 +47,7 @@ const newOne = async (req, res) => {
 		const { name, affectedData, disaffectedData, bookPage, comment } = req.body;
 		newElement = db.Affected({
 			section: req.userData.section,
+			superior: req.userData.fullName,
 			name,
 			affectedData,
 			disaffectedData,
@@ -96,11 +97,11 @@ const edit = async (req, res) => {
 				},
 				$set: {
 					'coverData.name': coverName.new ?? coverName.previous,
-					'returnData.name': returnName.new ?? coverName.previous,
+					'returnData.name': returnName.new ?? returnName.previous,
 				},
 			},
 		);
-		res.send(result);
+		res.send({ result, newAccessToken: req.newAccessToken });
 	} catch (error) {
 		await db.storeLog('Edit change', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
@@ -143,7 +144,7 @@ const modify = async (req, res) => {
 					},
 			  )
 			: await model.findOneAndDelete({ _id: itemId });
-		res.send({ result, changelogItem });
+		res.send({ result, changelogItem, newAccessToken: req.newAccessToken });
 	} catch (error) {
 		await db.storeLog('Modify change', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);

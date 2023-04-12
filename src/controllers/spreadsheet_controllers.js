@@ -24,11 +24,43 @@ const scheduleSearch = async (req, res) => {
 	}
 };
 
+const dayGuards = async (req, res) => {
+	const { date } = req.body;
+	try {
+		const consult = await consultSpreadsheet(
+			false,
+			'Buscador!B3',
+			date,
+			'Buscador!C2:F11',
+			'COLUMNS',
+		);
+		let dayGuard = [
+			{
+				shift: '6 a 14 hs.',
+				guardId: consult[0][1],
+			},
+			{
+				shift: '14 a 22 hs.',
+				guardId: consult[1][1],
+			},
+			{
+				shift: '22 a 6 hs.',
+				guardId: consult[2][1],
+			},
+		];
+		res.send(dayGuard);
+	} catch (error) {
+		await db.storeLog('Get day guards', { userId: req.userData.userId, body: req.body }, error);
+		console.log(error);
+		res.send({ mensaje: 'No se pudo realizar la consulta.' });
+	}
+};
+
 const allUsers = async (req, res) => {
 	try {
 		const consult = await consultSpreadsheet(true, null, null, 'Personal!A2:F7', 'COLUMNS');
-		const userList = consult.flat().sort();
-		res.send({ items: userList, newAccessToken: req.newAccessToken });
+		const usersList = consult.flat().sort();
+		res.send({ usersList, newAccessToken: req.newAccessToken });
 	} catch (error) {
 		await db.storeLog('Get all users', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
@@ -322,4 +354,5 @@ export default {
 	scheduleMonth,
 	scheduleSearch,
 	allUsers,
+	dayGuards,
 };

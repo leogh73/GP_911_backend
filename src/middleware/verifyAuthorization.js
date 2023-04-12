@@ -15,6 +15,7 @@ export const verifyAuthorization = async (req, res, next) => {
 		try {
 			refreshToken = jwt.verify(req.cookies.token, process.env.SERVICE_ENCRYPTION_KEY);
 		} catch (error) {
+			res.clearCookie('token', { httpOnly: true, secure: true, sameSite: 'strict' });
 			return res.send({ error: 'Not authorized' });
 		}
 
@@ -30,35 +31,10 @@ export const verifyAuthorization = async (req, res, next) => {
 			return res.send({ error: 'User not found' });
 		}
 
-		const {
-			_id,
-			username,
-			firstName,
-			lastName,
-			ni,
-			hierarchy,
-			section,
-			guardId,
-			email,
-			superior,
-			admin,
-		} = userData;
-		let fullName = `${lastName} ${firstName}`;
-
-		req.userData = {
-			userId: _id,
-			username,
-			firstName,
-			lastName,
-			ni,
-			hierarchy,
-			section,
-			guardId,
-			email,
-			superior,
-			admin,
-		};
-
+		let fullName = `${userData.lastName} ${userData.firstName}`;
+		req.userData = userData;
+		req.userData.fullName = fullName;
+		const { _id, section, guardId, superior, admin } = userData;
 		let newAccessToken;
 		try {
 			newAccessToken = jwt.sign(

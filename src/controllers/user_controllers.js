@@ -59,6 +59,8 @@ const register = async (req, res) => {
 
 	if (!encryptNewPassword) return res.send({ error: 'error' });
 
+	console.log(req.body);
+
 	const newUser = new db.User({
 		username,
 		lastName,
@@ -66,7 +68,7 @@ const register = async (req, res) => {
 		ni,
 		hierarchy,
 		section,
-		guardId: superior === 'Si' ? null : guardId.toString(),
+		guardId,
 		email,
 		password: encryptedPassword,
 		superior: superior === 'Si' ? true : false,
@@ -80,7 +82,7 @@ const register = async (req, res) => {
 	} catch (error) {
 		await db.storeLog('Store new user', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
-		return res.send({ userId: null });
+		return res.send({ result: { _id: null } });
 	}
 };
 
@@ -106,21 +108,15 @@ const login = async (req, res) => {
 		accesssToken = jwt.sign(
 			{
 				_id,
-				username,
 				fullName,
-				firstName,
-				lastName,
-				ni,
-				hierarchy,
 				section,
 				guardId,
-				email,
 				superior,
 				admin,
 			},
 			process.env.SERVICE_ENCRYPTION_KEY,
 			{
-				expiresIn: '1m',
+				expiresIn: '5m',
 			},
 		);
 		refreshToken = jwt.sign({ userId: _id }, process.env.SERVICE_ENCRYPTION_KEY, {
@@ -335,6 +331,8 @@ const profileEdit = async (req, res) => {
 		req.userData.fullName,
 	);
 
+	console.log(req.userData);
+
 	let userObject = {
 		_id: userId,
 		username: username.new ?? username.previous,
@@ -428,7 +426,7 @@ const allUsers = async (req, res) => {
 
 const refreshSession = (req, res) => {
 	const {
-		userId,
+		_id,
 		username,
 		firstName,
 		lastName,
@@ -443,7 +441,7 @@ const refreshSession = (req, res) => {
 
 	res.send({
 		token: req.headers?.authorization?.split(' ')[1] ?? req.newAccessToken,
-		userId,
+		userId: _id,
 		username,
 		firstName,
 		lastName,
@@ -458,10 +456,9 @@ const refreshSession = (req, res) => {
 };
 
 const logout = (req, res) => {
-	const cookies = req.cookies;
-	if (!cookies?.token) return res.sendStatus(204);
+	if (!req.cookies?.token) return res.sendStatus(204);
 	res.clearCookie('token', { httpOnly: true, secure: true, sameSite: 'strict' });
-	res.json({ message: 'Cookie cleared correctly' });
+	res.send({ message: 'Cookie cleared correctly' });
 };
 
 export default {

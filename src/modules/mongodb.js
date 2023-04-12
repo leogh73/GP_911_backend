@@ -70,6 +70,7 @@ const requestSchema = new Schema({
 }).index({ createdAt: 1 }, { expireAfterSeconds: 5184000 });
 
 const affectedSchema = new Schema({
+	superior: stringType,
 	name: stringType,
 	affectedData: {
 		date: stringType,
