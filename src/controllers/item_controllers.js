@@ -1,3 +1,4 @@
+import notifyUsers from '../modules/gmail.js';
 import luxon from '../modules/luxon.js';
 import db from '../modules/mongodb.js';
 
@@ -58,7 +59,15 @@ const newOne = async (req, res) => {
 
 	try {
 		let result = await newElement.save();
-		res.send({ result, newAccessToken: req.newAccessToken });
+		let mailId;
+		if (type === 'affected')
+			mailId = await notifyUsers(
+				result,
+				`Se han hecho cambios en su servicio.`,
+				req.userData.section,
+				'affected',
+			);
+		res.send({ result, mailId, newAccessToken: req.newAccessToken });
 	} catch (error) {
 		await db.storeLog('Create new item', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
@@ -144,7 +153,16 @@ const modify = async (req, res) => {
 					},
 			  )
 			: await model.findOneAndDelete({ _id: itemId });
-		res.send({ result, changelogItem, newAccessToken: req.newAccessToken });
+		let mailId;
+		if (type === 'change')
+			mailId = await notifyUsers(
+				result,
+				status.new,
+				`Su cambio de guardia ha sido ${status.new.toLowerCase()}`,
+				req.userData.section,
+				'change',
+			);
+		res.send({ result, changelogItem, mailId, newAccessToken: req.newAccessToken });
 	} catch (error) {
 		await db.storeLog('Modify change', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);

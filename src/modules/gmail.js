@@ -11,15 +11,78 @@ oAuth2Client.setCredentials(dbOauth2.tokens);
 
 const gmail = google.gmail({ version: 'v1', auth: oAuth2Client });
 
-const sendMail = async (emails, subject, html) => {
+const createHtmlMessages = (item, newStatus, type) => {
+	let response;
+	const doNotReply = `</p><p>---------------------</p><p><b>Éste es un mensaje automático, no lo responda.<b></p>`;
+	if (type === 'change') {
+		let message1 = `<p>Se ha ${newStatus} su cambio de guardia con ${item.returnData.name}. `;
+		let message2 = `<p>Se ha ${newStatus} su cambio de guardia con ${item.coverData.name}. `;
+		if (newStatus === 'autorizado') {
+			message1 =
+				message1 +
+				` Deberá prestar servicio el día ${item.coverData.day.toLowerCase()} ${
+					item.coverData.date
+				} de ${item.coverData.shift} en la guardia ${item.coverData.guardId}.`;
+			message2 =
+				message2 +
+				` Deberá prestar servicio el día ${item.returnData.day.toLowerCase()} ${
+					item.returnData.date
+				} de ${item.returnData.shift} en la guardia ${item.returnData.guardId}.`;
+		}
+		response = [message1 + doNotReply, message2 + doNotReply];
+	}
+	if (type === 'affected') {
+		response = [
+			`<p>Se han realizado cambios en su prestación de servicio. Ha sido afectado el día ${item.affectedData.day.toLowerCase()} ${
+				item.affectedData.date
+			} de ${item.affectedData.shift} en la guardia ${
+				item.affectedData.guardId
+			}. A su vez se le ha desafectado el día ${item.disaffectedData.day.toLowerCase()} ${
+				item.disaffectedData.date
+			} de ${item.disaffectedData.shift} en la guardia ${item.affectedData.guardId}.` + doNotReply,
+		];
+	}
+	return response;
+};
+
+const notifyUsers = async (item, newStatus, emailSubject, section, type) => {
+	const allUsers = (await db.User.find({ section: section })).map((u) => {
+		return {
+			userId: u._id,
+			email: u.email,
+			fullName: `${u.lastName} ${u.firstName}`,
+		};
+	});
+
+	const html = createHtmlMessages(item, newStatus, type);
+
+	console.log(html);
+	const index1 = allUsers.findIndex(
+		(u) => u.fullName === (type === 'change' ? item.coverData.name : item.name),
+	);
+	const email1 = allUsers[index1].email;
+	let sendMessages = [sendMail(emailSubject, email1, html[0])];
+
+	if (type === 'change') {
+		const index2 = allUsers.findIndex((u) => u.fullName === item.returnData.name);
+		const email2 = allUsers[index2].email;
+		sendMessages.push(sendMail(emailSubject, email2, html[1]));
+	}
+
+	return await Promise.all(sendMessages);
+};
+
+const sendMail = async (subject, destination, html) => {
 	const options = {
 		from: 'Cambios de Guardia 911<guardias911sfe@gmail.com>',
-		to: 'leocuevas73@gmail.com',
+		// to: `${email1},${email2}`,
+		to: destination,
 		cc: 'cc1@example.com, cc2@example.com',
 		// replyTo: 'cambios911sfe@gmail.com',
-		subject: 'Confirme cambios en su perfil 🚀',
+		// subject: 'Confirme cambios en su perfil 🚀',
+		subject,
 		text: 'This email is sent from the command line',
-		html: `<p>🙋🏻‍♀️  &mdash; This is a <b>test email</b> from <a href="https://digitalinspiration.com">Digital Inspiration</a>.</p>`,
+		html,
 		textEncoding: 'base64',
 		headers: [
 			{ key: 'X-Application-Developer', value: 'Leonardo Cuevas' },
@@ -49,7 +112,7 @@ const sendMail = async (emails, subject, html) => {
 	return id;
 };
 
-export default sendMail;
+export default notifyUsers;
 
 // let oAuth2 = dbOauth2.toObject();
 // oAuth2Client.on('tokens', async (tokens) => {
