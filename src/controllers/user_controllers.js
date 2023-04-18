@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import db from '../modules/mongodb.js';
 import luxon from '../modules/luxon.js';
 import sendMail from '../modules/gmail.js';
+import notifyUsers from '../modules/gmail.js';
 
 const encryptNewPassword = async (password, logAction, req) => {
 	let encryptedPass;
@@ -182,20 +183,34 @@ const forgotPassword = async (req, res) => {
 
 		try {
 			let token = jwt.sign({ userId: _id }, process.env.SERVICE_ENCRYPTION_KEY, {
-				expiresIn: '1h',
+				expiresIn: '1d',
 			});
 			let url = `http://localhost:3000/new-password/token=${token}`;
-			console.log(url);
-			let emailId = await sendMail();
+			let emailId = await notifyUsers(
+				email,
+				url,
+				'Solicitud de recuperación de contraseña',
+				null,
+				'forgot-password',
+			);
 			return res.send({ _id: emailId, newAccessToken: req.newAccessToken });
 		} catch (error) {
 			await db.storeLog('Generate recover password token', { userId: _id, body: req.body }, error);
+			console.log(error);
 			return res.send({ error: 'error' });
 		}
 	}
 
 	if (token) {
-		const { userId } = jwt.verify(token, process.env.SERVICE_ENCRYPTION_KEY);
+		let userId;
+		try {
+			const decodedToken = jwt.verify(token, process.env.SERVICE_ENCRYPTION_KEY);
+			userId = decodedToken.userId;
+		} catch (error) {
+			await db.storeLog('Decode token', { userId, body: req.body }, error);
+			console.log(error);
+			return res.send({ error: 'error' });
+		}
 
 		return res.send(!userId ? { error: 'Token not valid' } : { _id: userId });
 	}
@@ -239,6 +254,8 @@ const profileEdit = async (req, res) => {
 				comment,
 			} = req.body;
 
+			console.log(req.body);
+
 			try {
 				let token = jwt.sign(
 					{
@@ -258,8 +275,13 @@ const profileEdit = async (req, res) => {
 					{ expiresIn: '1h' },
 				);
 				let url = `http://localhost:3000/profile/edit-confirm/token=${token}`;
-				console.log(url);
-				let mailId = await sendMail();
+				let mailId = await notifyUsers(
+					email.new ?? email.previous,
+					url,
+					'Confirme cambios en su perfil',
+					req.userData.section,
+					'profile-edit',
+				);
 				return res.send({ _id: mailId, newAccessToken: req.newAccessToken });
 			} catch (error) {
 				await db.storeLog('Generate token', { userId: userId, body: req.body }, error);
@@ -330,8 +352,6 @@ const profileEdit = async (req, res) => {
 		comment.length ? comment : null,
 		req.userData.fullName,
 	);
-
-	console.log(req.userData);
 
 	let userObject = {
 		_id: userId,
