@@ -426,21 +426,27 @@ const modify = async (req, res) => {
 };
 
 const allUsers = async (req, res) => {
-	if (!req.userData.admin) return res.send({ error: 'User not valid' });
+	// if (!req.userData.admin) return res.send({ error: 'User not valid' });
 
 	const { section } = req.body;
 
 	try {
-		let allUsers = (await db.User.find({ section: section })).map((u) => {
-			let user = u.toObject();
-			user.userId = u._id;
-			return user;
-		});
-		return res.send({ allUsers, newAccessToken: req.newAccessToken });
+		let usersList =
+			req.userData.admin && section
+				? (await db.User.find({ section: section })).map((u) => {
+						let user = u.toObject();
+						user.userId = u._id;
+						return user;
+				  })
+				: (await db.User.find({ section: req.userData.section, superior: false })).map(
+						(u) => `${u.lastName} ${u.firstName}`,
+				  );
+		console.log(usersList);
+		res.send({ usersList, newAccessToken: req.newAccessToken });
 	} catch (error) {
 		await db.storeLog('Get all users', { userId: req.userData.userId }, error);
 		console.log(error);
-		return res.send({ error: error.toString() });
+		res.send({ error: error.toString() });
 	}
 };
 

@@ -147,10 +147,10 @@ const modify = async (req, res) => {
 			? await model.findOneAndUpdate(
 					{ _id: itemId },
 					{
-						// $push: {
-						// 	changelog: changelogItem,
-						// },
-						// $set: { status: status.new },
+						$push: {
+							changelog: changelogItem,
+						},
+						$set: { status: status.new },
 					},
 			  )
 			: await model.findOneAndDelete({ _id: itemId });
