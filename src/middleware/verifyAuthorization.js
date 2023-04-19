@@ -9,7 +9,9 @@ export const verifyAuthorization = async (req, res, next) => {
 		req.userData = { userId: _id, fullName, section, guardId, superior, admin };
 		next();
 	} catch (error) {
-		if (!req.cookies.token) return res.status(200).send({ message: 'Session not found' });
+		if (!req.cookies.token) {
+			return res.status(200).send({ message: 'Session not found', req });
+		}
 
 		let refreshToken;
 		try {
