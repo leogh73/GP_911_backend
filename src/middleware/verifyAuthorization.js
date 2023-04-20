@@ -15,7 +15,7 @@ export const verifyAuthorization = async (req, res, next) => {
 		try {
 			refreshToken = jwt.verify(req.cookies.token, process.env.SERVICE_ENCRYPTION_KEY);
 		} catch (error) {
-			res.clearCookie('token', { httpOnly: true, secure: true, sameSite: 'lax' });
+			res.clearCookie('token', { httpOnly: true, secure: true, sameSite: 'strict' });
 			return res.send({ error: 'Not authorized' });
 		}
 
