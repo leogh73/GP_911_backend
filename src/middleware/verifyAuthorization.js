@@ -18,8 +18,8 @@ export const verifyAuthorization = async (req, res, next) => {
 			res.clearCookie('token', {
 				httpOnly: true,
 				secure: true,
-				sameSite: 'strict',
-				domain: 'https://guardias911.vercel.app',
+				sameSite: 'none',
+				domain: 'guardias911.vercel.app',
 			});
 			return res.send({ error: 'Not authorized' });
 		}

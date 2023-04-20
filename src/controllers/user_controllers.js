@@ -131,8 +131,8 @@ const login = async (req, res) => {
 	res.cookie('token', refreshToken, {
 		httpOnly: true,
 		secure: true,
-		sameSite: 'strict',
-		domain: 'https://guardias911.vercel.app',
+		sameSite: 'none',
+		domain: 'guardias911.vercel.app',
 		maxAge: 7 * 24 * 60 * 60 * 1000,
 	});
 
@@ -487,8 +487,8 @@ const logout = (req, res) => {
 	res.clearCookie('token', {
 		httpOnly: true,
 		secure: true,
-		sameSite: 'strict',
-		domain: 'https://guardias911.vercel.app',
+		sameSite: 'none',
+		domain: 'guardias911.vercel.app',
 	});
 	res.send({ message: 'Cookie cleared correctly' });
 };
