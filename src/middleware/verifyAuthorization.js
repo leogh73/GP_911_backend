@@ -19,7 +19,7 @@ export const verifyAuthorization = async (req, res, next) => {
 				httpOnly: true,
 				secure: true,
 				sameSite: 'strict',
-				domain: 'guardias911.vercel.app',
+				domain: 'https://guardias911.vercel.app',
 			});
 			return res.send({ error: 'Not authorized' });
 		}
