@@ -9,15 +9,13 @@ export const verifyAuthorization = async (req, res, next) => {
 		req.userData = { userId: _id, fullName, section, guardId, superior, admin };
 		next();
 	} catch (error) {
-		if (!req.cookies.token) {
-			return res.status(200).send({ message: 'Session not found', req });
-		}
+		if (!req.cookies.token) return res.status(200).send({ message: 'Session not found' });
 
 		let refreshToken;
 		try {
 			refreshToken = jwt.verify(req.cookies.token, process.env.SERVICE_ENCRYPTION_KEY);
 		} catch (error) {
-			res.clearCookie('token', { httpOnly: true, secure: true, sameSite: 'strict' });
+			res.clearCookie('token', { httpOnly: true, secure: true, sameSite: 'lax' });
 			return res.send({ error: 'Not authorized' });
 		}
 

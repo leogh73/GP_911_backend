@@ -131,7 +131,7 @@ const login = async (req, res) => {
 	res.cookie('token', refreshToken, {
 		httpOnly: true,
 		secure: true,
-		sameSite: 'strict',
+		sameSite: 'lax',
 		maxAge: 7 * 24 * 60 * 60 * 1000,
 	});
 
@@ -483,7 +483,7 @@ const refreshSession = (req, res) => {
 
 const logout = (req, res) => {
 	if (!req.cookies?.token) return res.sendStatus(204);
-	res.clearCookie('token', { httpOnly: true, secure: true, sameSite: 'strict' });
+	res.clearCookie('token', { httpOnly: true, secure: true, sameSite: 'lax' });
 	res.send({ message: 'Cookie cleared correctly' });
 };
 
