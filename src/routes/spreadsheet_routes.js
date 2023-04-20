@@ -5,9 +5,9 @@ import spreadsheet from '../controllers/spreadsheet_controllers.js';
 
 router.use(verifyAuthorization);
 
-router.get('/month', spreadsheet.scheduleMonth);
+router.post('/month', spreadsheet.scheduleMonth);
 router.post('/search', spreadsheet.scheduleSearch);
-router.get('/users', spreadsheet.allUsers);
+router.post('/users', spreadsheet.allUsers);
 router.post('/day', spreadsheet.dayGuards);
 
 export default router;
