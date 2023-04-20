@@ -132,6 +132,7 @@ const login = async (req, res) => {
 		httpOnly: true,
 		secure: true,
 		sameSite: 'strict',
+		domain: 'guardias911.vercel.app',
 		maxAge: 7 * 24 * 60 * 60 * 1000,
 	});
 
@@ -483,7 +484,12 @@ const refreshSession = (req, res) => {
 
 const logout = (req, res) => {
 	if (!req.cookies?.token) return res.sendStatus(204);
-	res.clearCookie('token', { httpOnly: true, secure: true, sameSite: 'strict' });
+	res.clearCookie('token', {
+		httpOnly: true,
+		secure: true,
+		sameSite: 'strict',
+		domain: 'guardias911.vercel.app',
+	});
 	res.send({ message: 'Cookie cleared correctly' });
 };
 

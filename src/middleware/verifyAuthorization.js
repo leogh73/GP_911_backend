@@ -15,7 +15,12 @@ export const verifyAuthorization = async (req, res, next) => {
 		try {
 			refreshToken = jwt.verify(req.cookies.token, process.env.SERVICE_ENCRYPTION_KEY);
 		} catch (error) {
-			res.clearCookie('token', { httpOnly: true, secure: true, sameSite: 'strict' });
+			res.clearCookie('token', {
+				httpOnly: true,
+				secure: true,
+				sameSite: 'strict',
+				domain: 'guardias911.vercel.app',
+			});
 			return res.send({ error: 'Not authorized' });
 		}
 
