@@ -441,7 +441,6 @@ const allUsers = async (req, res) => {
 				: (await db.User.find({ section: req.userData.section, superior: false })).map(
 						(u) => `${u.lastName} ${u.firstName}`,
 				  );
-		console.log(usersList);
 		res.send({ usersList, newAccessToken: req.newAccessToken });
 	} catch (error) {
 		await db.storeLog('Get all users', { userId: req.userData.userId }, error);

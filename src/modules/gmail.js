@@ -44,13 +44,20 @@ const createHtmlMessages = (item, newStatus, type) => {
 		response = [htmlMessage(message1), htmlMessage(message2)];
 	}
 	if (type === 'affected') {
-		message = `<Se han realizado cambios en su prestación de servicio. Ha sido afectado el día ${item.affectedData.day.toLowerCase()} ${
-			item.affectedData.date
-		} de ${item.affectedData.shift} en la guardia ${
-			item.affectedData.guardId
-		}. A su vez se le ha desafectado el día ${item.disaffectedData.day.toLowerCase()} ${
-			item.disaffectedData.date
-		} de ${item.disaffectedData.shift} en la guardia ${item.affectedData.guardId}.`;
+		let baseMessage = newStatus
+			? 'Se han realizado cambios en su prestación de servicio. '
+			: 'Se ha cancelado un cambio en la prestación de su servicio. ';
+		let message =
+			baseMessage +
+			`${
+				newStatus ? 'Ha sido' : 'Había sido'
+			} afectado el día ${item.affectedData.day.toLowerCase()} ${item.affectedData.date} de ${
+				item.affectedData.shift
+			} en la guardia ${item.affectedData.guardId}. A su vez ${
+				newStatus ? 'ha sido' : 'había sido'
+			} desafectado el día ${item.disaffectedData.day.toLowerCase()} ${
+				item.disaffectedData.date
+			} de ${item.disaffectedData.shift} en la guardia ${item.affectedData.guardId}.`;
 		response = [htmlMessage(message)];
 	}
 	if (type === 'profile-edit') {

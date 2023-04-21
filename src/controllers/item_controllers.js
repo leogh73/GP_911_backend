@@ -63,7 +63,7 @@ const newOne = async (req, res) => {
 		if (type === 'affected')
 			mailId = await notifyUsers(
 				result,
-				null,
+				true,
 				`Se han hecho cambios en su servicio.`,
 				req.userData.section,
 				'affected',
@@ -159,9 +159,17 @@ const modify = async (req, res) => {
 			mailId = await notifyUsers(
 				result,
 				status.new,
-				`Su cambio de guardia ha sido ${status.new.toLowerCase()}`,
+				`Su cambio de guardia ha sido ${status ? status.new.toLowerCase() : 'eliminado'}`,
 				req.userData.section,
 				'change',
+			);
+		if (type === 'affected' && !status)
+			mailId = await notifyUsers(
+				result,
+				null,
+				'Su cambio de servicio ha sido eliminado',
+				req.userData.section,
+				'affected',
 			);
 		res.send({ result, changelogItem, mailId, newAccessToken: req.newAccessToken });
 	} catch (error) {

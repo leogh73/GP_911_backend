@@ -13,7 +13,6 @@ import spreadsheetRoutes from './src/routes/spreadsheet_routes.js';
 import itemRoutes from './src/routes/item_routes.js';
 
 app.use((req, res, next) => {
-	console.log(req.headers);
 	if (req.method !== 'POST') return res.status(405).send('Not allowed.');
 	next();
 });
