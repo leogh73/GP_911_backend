@@ -426,8 +426,6 @@ const modify = async (req, res) => {
 };
 
 const allUsers = async (req, res) => {
-	// if (!req.userData.admin) return res.send({ error: 'User not valid' });
-
 	const { section } = req.body;
 
 	try {

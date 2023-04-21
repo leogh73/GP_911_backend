@@ -155,7 +155,7 @@ const modify = async (req, res) => {
 			  )
 			: await model.findOneAndDelete({ _id: itemId });
 		let mailId;
-		if (type === 'change')
+		if ((type === 'change') & !!status)
 			mailId = await notifyUsers(
 				result,
 				status.new,
