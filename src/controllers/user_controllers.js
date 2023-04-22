@@ -60,8 +60,6 @@ const register = async (req, res) => {
 
 	if (!encryptNewPassword) return res.send({ error: 'error' });
 
-	console.log(req.body);
-
 	const newUser = new db.User({
 		username,
 		lastName,
