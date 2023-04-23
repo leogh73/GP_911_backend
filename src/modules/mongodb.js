@@ -5,7 +5,7 @@ const Schema = mongoose.Schema;
 
 mongoose
 	.connect(
-		`mongodb+srv://${vars.MDB_USER}:${vars.MDB_PASSWORD}@cluster0.h8zq9.mongodb.net/gestion_personal_911`,
+		`mongodb+srv://${vars.MDB_USER}:${vars.MDB_PASSWORD}@cluster0.3st1ow9.mongodb.net/guardias_911`,
 		{
 			useNewUrlParser: true,
 			useUnifiedTopology: true,
