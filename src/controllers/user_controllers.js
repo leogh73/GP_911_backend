@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import db from '../modules/mongodb.js';
 import luxon from '../modules/luxon.js';
-import sendMail from '../modules/gmail.js';
+import vars from '../modules/crypto-js.js';
 import notifyUsers from '../modules/gmail.js';
 
 const encryptNewPassword = async (password, logAction, req) => {
@@ -176,14 +176,14 @@ const forgotPassword = async (req, res) => {
 	const { email, token, newPassword, userId } = req.body;
 
 	if (email) {
-		const { _id } = (await db.User.find({ email: email }))[0];
-		if (!_id) return res.send({ error: 'User not found' });
+		const user = await db.User.findOne({ email: email });
+		if (!user) return res.send({ error: 'User not found' });
 
 		try {
-			let token = jwt.sign({ userId: _id }, process.env.SERVICE_ENCRYPTION_KEY, {
+			let token = jwt.sign({ userId: user._id }, process.env.SERVICE_ENCRYPTION_KEY, {
 				expiresIn: '1d',
 			});
-			let url = `http://localhost:3000/new-password/token=${token}`;
+			let url = `${vars.FRONTEND_URL}/new-password/token=${token}`;
 			let emailId = await notifyUsers(
 				email,
 				url,
@@ -193,7 +193,11 @@ const forgotPassword = async (req, res) => {
 			);
 			return res.send({ _id: emailId, newAccessToken: req.newAccessToken });
 		} catch (error) {
-			await db.storeLog('Generate recover password token', { userId: _id, body: req.body }, error);
+			await db.storeLog(
+				'Generate recover password token',
+				{ userId: user._id, body: req.body },
+				error,
+			);
 			console.log(error);
 			return res.send({ error: 'error' });
 		}
