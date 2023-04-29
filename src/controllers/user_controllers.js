@@ -135,7 +135,7 @@ const login = async (req, res) => {
 
 	res.send({
 		token: accesssToken,
-		userId: _id,
+		_id,
 		username,
 		firstName,
 		lastName,
@@ -177,7 +177,7 @@ const forgotPassword = async (req, res) => {
 
 	if (email) {
 		const user = await db.User.findOne({ email: email });
-		if (!user) return res.send({ error: 'User not found' });
+		if (!user) return res.send({ error: 'user email' });
 
 		try {
 			let token = jwt.sign({ userId: user._id }, process.env.SERVICE_ENCRYPTION_KEY, {
@@ -255,8 +255,6 @@ const profileEdit = async (req, res) => {
 				email,
 				comment,
 			} = req.body;
-
-			console.log(req.body);
 
 			try {
 				let token = jwt.sign(
@@ -339,6 +337,8 @@ const profileEdit = async (req, res) => {
 		if (w === 'No') newKey = false;
 		return newKey;
 	};
+
+	console.log(req.body);
 
 	const generateChangelog = () => {
 		let changelogDetails = [];
@@ -433,11 +433,7 @@ const allUsers = async (req, res) => {
 	try {
 		let usersList =
 			req.userData.admin && section
-				? (await db.User.find({ section: section })).map((u) => {
-						let user = u.toObject();
-						user.userId = u._id;
-						return user;
-				  })
+				? await db.User.find({ section: section })
 				: (await db.User.find({ section: req.userData.section, superior: false })).map(
 						(u) => `${u.lastName} ${u.firstName}`,
 				  );

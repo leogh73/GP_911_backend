@@ -17,8 +17,8 @@ const register = async (req, res, next) => {
 		return res.send({ error: error.toString() });
 	}
 
-	if (verification[0]) return res.send({ error: 'ni' });
-	if (verification[1]) return res.send({ error: 'email' });
+	if (verification[0]) return res.send({ error: 'register', detail: 'ni' });
+	if (verification[1]) return res.send({ error: 'register', detail: 'email' });
 
 	next();
 };
@@ -37,7 +37,7 @@ const login = async (req, res, next) => {
 		return res.send({ error: 'error' });
 	}
 
-	if (!storedData) return res.send({ error: 'usernameOrEmail' });
+	if (!storedData) return res.send({ error: 'login', detail: 'usernameOrEmail' });
 
 	let validationPassword;
 	try {
@@ -47,7 +47,7 @@ const login = async (req, res, next) => {
 		return res.send({ error: 'error' });
 	}
 
-	if (!validationPassword) return res.send({ error: 'password' });
+	if (!validationPassword) return res.send({ error: 'login', detail: 'password' });
 
 	req.userData = storedData;
 
@@ -72,7 +72,7 @@ const changePassword = async (req, res, next) => {
 		validationPassword = await bcrypt.compare(currentPassword, storedData.password);
 	} catch (error) {
 		await db.storeLog('Wrong password', { userId: req.userData.userId, body: req.body }, error);
-		return res.send({ error: 'Wrong password' });
+		return res.send({ error: 'password error' });
 	}
 
 	if (!validationPassword) return res.send({ error: 'Password not valid' });
