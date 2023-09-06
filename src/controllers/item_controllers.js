@@ -1,6 +1,6 @@
-import notifyUsers from '../modules/gmail.js';
 import luxon from '../modules/luxon.js';
 import db from '../modules/mongodb.js';
+import notifyUsers from '../modules/nodemailer.js';
 
 const all = async (req, res) => {
 	const { type } = req.body;
@@ -25,12 +25,14 @@ const newOne = async (req, res) => {
 
 	let newElement;
 	if (type === 'change') {
-		const { coverData, returnData } = req.body;
+		const { coverData, returnData, motive } = req.body;
+		console.log(req.body);
 		newElement = db.Change({
-			changelog: [luxon.changelog(['Creación'], null, coverData.name)],
+			changelog: [luxon.changelog(['Creación'], motive.length ? motive : '', coverData.name)],
 			coverData,
 			returnData,
 			section: req.userData.section,
+			motive: motive.length ? motive : null,
 			status: 'Solicitado',
 		});
 	}
@@ -173,9 +175,21 @@ const modify = async (req, res) => {
 			);
 		res.send({ result, changelogItem, mailId, newAccessToken: req.newAccessToken });
 	} catch (error) {
-		await db.storeLog('Modify change', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
+		await db.storeLog('Modify change', { userId: req.userData.userId, body: req.body }, error);
 		res.send({ error: error.toString() });
+	}
+};
+
+const fetch = async (req, res) => {
+	const { type, id } = req.params;
+	try {
+		let item = type === 'change' ? await db.Change.findById(id) : await db.Affected.findById(id);
+		if (!item) return res.status(404).json({ error: 'Item not found' });
+		return res.status(200).json(item);
+	} catch (error) {
+		res.status(500).send({ error: 'An error ocurred', detail: error.toString() });
+		await db.storeLog('Fetch', { type, id }, error);
 	}
 };
 
@@ -230,4 +244,4 @@ const sortList = (type, itemsList, schedule) => {
 	return finalList;
 };
 
-export default { all, newOne, edit, modify };
+export default { all, newOne, edit, modify, fetch };

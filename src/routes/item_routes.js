@@ -3,6 +3,8 @@ const router = Router();
 import item from '../controllers/item_controllers.js';
 import { verifyAuthorization } from '../middleware/verifyAuthorization.js';
 
+router.get('/fetch/:type/:id', item.fetch);
+
 router.use(verifyAuthorization);
 
 router.post('/all', item.all);

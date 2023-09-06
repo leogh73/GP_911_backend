@@ -9,30 +9,23 @@ export const verifyAuthorization = async (req, res, next) => {
 		req.userData = { userId: _id, fullName, section, guardId, superior, admin };
 		next();
 	} catch (error) {
-		if (!req.cookies.token) return res.status(200).send({ message: 'Session not found' });
+		let responseError = { error: 'Not authorized' };
+		if (!req.cookies.token) return res.status(401).send(responseError);
 
 		let refreshToken;
 		try {
 			refreshToken = jwt.verify(req.cookies.token, process.env.SERVICE_ENCRYPTION_KEY);
 		} catch (error) {
-			res.clearCookie('token', {
-				httpOnly: true,
-				secure: true,
-				sameSite: 'none',
-			});
-			return res.send({ error: 'Not authorized' });
+			return res.status(401).send(responseError);
 		}
-
-		const { userId } = refreshToken;
-
-		if (!userId) return res.status(401).send({ error: 'Not authorized' });
 
 		let userData;
 		try {
+			const { userId } = refreshToken;
 			userData = await db.User.findById(userId);
 		} catch (error) {
 			await db.storeLog('User not found', { userId, body: req.body }, error);
-			return res.send({ error: 'User not found' });
+			return res.status(401).send(responseError);
 		}
 
 		let fullName = `${userData.lastName} ${userData.firstName}`;
@@ -44,12 +37,11 @@ export const verifyAuthorization = async (req, res, next) => {
 			newAccessToken = jwt.sign(
 				{ _id, fullName, section, guardId, superior, admin },
 				process.env.SERVICE_ENCRYPTION_KEY,
-				{ expiresIn: '1m' },
+				{ expiresIn: '10m' },
 			);
 		} catch (error) {
 			await db.storeLog('New access token', { body: req.body, headers: req.headers }, error);
-			console.log(error);
-			return res.send({ error: 'error' });
+			return res.send(responseError);
 		}
 
 		req.newAccessToken = newAccessToken;

@@ -1,15 +1,17 @@
+import nodemailer from 'nodemailer';
+import db from '../modules/mongodb.js';
 import vars from './crypto-js.js';
-import MailComposer from 'nodemailer/lib/mail-composer/index.js';
-import db from './mongodb.js';
-import { google } from 'googleapis';
 
-const { client_secret, client_id, redirect_uris } = vars.OAUTH2_CREDENTIALS;
-const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
-
-const dbOauth2 = (await db.Oauth2.find({}))[0];
-oAuth2Client.setCredentials(dbOauth2.tokens);
-
-const gmail = google.gmail({ version: 'v1', auth: oAuth2Client });
+const transporter = nodemailer.createTransport({
+	service: 'gmail',
+	host: 'smtp.gmail.com',
+	port: 587,
+	secure: false,
+	auth: {
+		user: vars.EMAIL_USER,
+		pass: vars.EMAIL_PASSWORD,
+	},
+});
 
 const htmlMessage = (main, urlText, urlLink) => {
 	let base = `<p style="font-size: 18px">${main}</p>`;
@@ -106,44 +108,23 @@ const notifyUsers = async (item, newStatus, emailSubject, section, type) => {
 		sendMessages.push(sendMail(emailSubject, email2, html[1]));
 	}
 
-	return await Promise.all(sendMessages);
+	try {
+		await Promise.all(sendMessages);
+	} catch (error) {
+		console.log(error);
+		await db.storeLog('Send emails', item, error);
+		return { message: 'Emails not sended', error: error.toString() };
+	}
 };
 
 const sendMail = async (subject, destination, html) => {
-	const options = {
-		from: 'Cambios de Guardia 911<guardias911sfe@gmail.com>',
+	const mailDetails = {
+		from: `Cambios de Guardia 911<${vars.EMAIL_USER}>`,
 		to: destination,
-		cc: 'cc1@example.com, cc2@example.com',
 		subject,
-		text: 'This email is sent from the command line',
 		html,
-		textEncoding: 'base64',
-		headers: [
-			{ key: 'X-Application-Developer', value: 'Leonardo Cuevas' },
-			{ key: 'X-Application-Version', value: 'v1.0.0.2' },
-		],
 	};
-
-	const createMail = async (options) => {
-		const mailComposer = new MailComposer(options);
-		const message = await mailComposer.compile().build();
-		return Buffer.from(message)
-			.toString('base64')
-			.replace(/\+/g, '-')
-			.replace(/\//g, '_')
-			.replace(/=+$/, '');
-	};
-
-	const rawMessage = await createMail(options);
-
-	const { data: { id } = {} } = await gmail.users.messages.send({
-		userId: 'me',
-		resource: {
-			raw: rawMessage,
-		},
-	});
-
-	return id;
+	await transporter.sendMail(mailDetails);
 };
 
 export default notifyUsers;

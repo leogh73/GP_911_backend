@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import db from '../modules/mongodb.js';
 import luxon from '../modules/luxon.js';
 import vars from '../modules/crypto-js.js';
-import notifyUsers from '../modules/gmail.js';
+import notifyUsers from '../modules/nodemailer.js';
 
 const encryptNewPassword = async (password, logAction, req) => {
 	let encryptedPass;
@@ -115,7 +115,7 @@ const login = async (req, res) => {
 			},
 			process.env.SERVICE_ENCRYPTION_KEY,
 			{
-				expiresIn: '5m',
+				expiresIn: '10m',
 			},
 		);
 		refreshToken = jwt.sign({ userId: _id }, process.env.SERVICE_ENCRYPTION_KEY, {

@@ -12,10 +12,10 @@ import userRoutes from './src/routes/user_routes.js';
 import spreadsheetRoutes from './src/routes/spreadsheet_routes.js';
 import itemRoutes from './src/routes/item_routes.js';
 
-app.use((req, res, next) => {
-	if (req.method !== 'POST') return res.status(405).send('Not allowed.');
-	next();
-});
+// app.use((req, res, next) => {
+// 	if (req.method !== 'POST') return res.status(405).send('Not allowed.');
+// 	next();
+// });
 
 app.use('/api/user', userRoutes);
 app.use('/api/spreadsheet', spreadsheetRoutes);
