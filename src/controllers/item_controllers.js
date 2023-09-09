@@ -14,8 +14,8 @@ const all = async (req, res) => {
 		let sortedItems = sortList(type, filteredItems, false);
 		res.send({ result: sortedItems, newAccessToken: req.newAccessToken });
 	} catch (error) {
-		await db.storeLog('Get all changes', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
+		await db.storeLog('Get all changes', { userId: req.userData.userId, body: req.body }, error);
 		res.send({ error: error.toString() });
 	}
 };
@@ -26,7 +26,6 @@ const newOne = async (req, res) => {
 	let newElement;
 	if (type === 'change') {
 		const { coverData, returnData, motive } = req.body;
-		console.log(req.body);
 		newElement = db.Change({
 			changelog: [luxon.changelog(['Creación'], motive.length ? motive : '', coverData.name)],
 			coverData,
@@ -72,8 +71,8 @@ const newOne = async (req, res) => {
 			);
 		res.send({ result, mailId, newAccessToken: req.newAccessToken });
 	} catch (error) {
-		await db.storeLog('Create new item', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
+		await db.storeLog('Create new item', { userId: req.userData.userId, body: req.body }, error);
 		res.send({ error: error.toString() });
 	}
 };
@@ -115,8 +114,8 @@ const edit = async (req, res) => {
 		);
 		res.send({ result, newAccessToken: req.newAccessToken });
 	} catch (error) {
-		await db.storeLog('Edit change', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
+		await db.storeLog('Edit change', { userId: req.userData.userId, body: req.body }, error);
 		res.send({ error: error.toString() });
 	}
 };

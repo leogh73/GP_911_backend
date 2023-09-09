@@ -83,6 +83,16 @@ const createHtmlMessages = (item, newStatus, type) => {
 	return response;
 };
 
+const sendMail = async (subject, destination, html) => {
+	const mailDetails = {
+		from: `Cambios de Guardia 911<${vars.EMAIL_USER}>`,
+		to: destination,
+		subject,
+		html,
+	};
+	await transporter.sendMail(mailDetails);
+};
+
 const notifyUsers = async (item, newStatus, emailSubject, section, type) => {
 	const allUsers = (
 		!!section ? await db.User.find({ section: section }) : await db.User.find({})
@@ -115,16 +125,6 @@ const notifyUsers = async (item, newStatus, emailSubject, section, type) => {
 		await db.storeLog('Send emails', item, error);
 		return { message: 'Emails not sended', error: error.toString() };
 	}
-};
-
-const sendMail = async (subject, destination, html) => {
-	const mailDetails = {
-		from: `Cambios de Guardia 911<${vars.EMAIL_USER}>`,
-		to: destination,
-		subject,
-		html,
-	};
-	await transporter.sendMail(mailDetails);
 };
 
 export default notifyUsers;

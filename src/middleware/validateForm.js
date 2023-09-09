@@ -32,8 +32,8 @@ const login = async (req, res, next) => {
 			? await db.User.findOne({ email: usernameOrEmail })
 			: await db.User.findOne({ username: usernameOrEmail });
 	} catch (error) {
-		await db.storeLog('DB search', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
+		await db.storeLog('DB search', { userId: req.userData.userId, body: req.body }, error);
 		return res.send({ error: 'error' });
 	}
 

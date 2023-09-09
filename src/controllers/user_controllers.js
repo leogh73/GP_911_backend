@@ -36,8 +36,8 @@ const storeNewPassword = async (userId, encryptedPassword, logAction, reset, req
 			},
 		);
 	} catch (error) {
-		await db.storeLog(logAction, { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
+		await db.storeLog(logAction, { userId: req.userData.userId, body: req.body }, error);
 	}
 	return { result, changelogItem, newAccessToken: req.newAccessToken };
 };
@@ -79,8 +79,8 @@ const register = async (req, res) => {
 		let result = await newUser.save();
 		return res.send({ result, newAccessToken: req.newAccessToken });
 	} catch (error) {
-		await db.storeLog('Store new user', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
+		await db.storeLog('Store new user', { userId: req.userData.userId, body: req.body }, error);
 		return res.send({ result: { _id: null } });
 	}
 };
@@ -338,8 +338,6 @@ const profileEdit = async (req, res) => {
 		return newKey;
 	};
 
-	console.log(req.body);
-
 	const generateChangelog = () => {
 		let changelogDetails = [];
 		for (const [key, value] of Object.entries(req.userData.admin ? req.body : userData)) {
@@ -439,8 +437,8 @@ const allUsers = async (req, res) => {
 				  );
 		res.send({ usersList, newAccessToken: req.newAccessToken });
 	} catch (error) {
-		await db.storeLog('Get all users', { userId: req.userData.userId }, error);
 		console.log(error);
+		await db.storeLog('Get all users', { userId: req.userData.userId }, error);
 		res.send({ error: error.toString() });
 	}
 };

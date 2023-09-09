@@ -50,8 +50,8 @@ const dayGuards = async (req, res) => {
 		];
 		res.send(dayGuard);
 	} catch (error) {
-		await db.storeLog('Get day guards', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
+		await db.storeLog('Get day guards', { userId: req.userData.userId, body: req.body }, error);
 		res.send({ mensaje: 'No se pudo realizar la consulta.' });
 	}
 };
@@ -62,8 +62,8 @@ const allUsers = async (req, res) => {
 		const usersList = consult.flat().sort();
 		res.send({ usersList, newAccessToken: req.newAccessToken });
 	} catch (error) {
-		await db.storeLog('Get all users', { userId: req.userData.userId, body: req.body }, error);
 		console.log(error);
+		await db.storeLog('Get all users', { userId: req.userData.userId, body: req.body }, error);
 		res.send({ error: 'An error ocurred.' });
 	}
 };
@@ -98,30 +98,21 @@ const generateSchedule = async (userData, date) => {
 		let scheduleDay = `${splittedDay[0].padStart(2, 0)}/${splittedDay[1].padStart(2, 0)}/${
 			splittedDay[2]
 		}`;
+		const shiftDetail = (day, pastTest) => {
+			return {
+				guardId: day,
+				status: [],
+				detail: [],
+				past: pastTest,
+				selected: scheduleDay === date ? true : false,
+			};
+		};
 		return {
 			date: scheduleDay,
 			day: day[4],
-			morning: {
-				guardId: day[1],
-				status: [],
-				detail: [],
-				past: pastTest(splittedDay, 14, null),
-				selected: scheduleDay === date ? true : false,
-			},
-			afternoon: {
-				guardId: day[2],
-				status: [],
-				detail: [],
-				past: pastTest(splittedDay, 22, null),
-				selected: scheduleDay === date ? true : false,
-			},
-			night: {
-				guardId: day[3],
-				status: [],
-				detail: [],
-				past: pastTest(splittedDay, 6, spreadSheetData[0][i + 1]),
-				selected: scheduleDay === date ? true : false,
-			},
+			morning: shiftDetail(day[1], pastTest(splittedDay, 14, null)),
+			afternoon: shiftDetail(day[2], pastTest(splittedDay, 22, null)),
+			night: shiftDetail(day[3], pastTest(splittedDay, 6, spreadSheetData[0][i + 1])),
 		};
 	});
 
